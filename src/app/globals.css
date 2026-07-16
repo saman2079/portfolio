@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-ink-600;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-950 text-paper-100 font-body antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent-blue/30 text-paper-100;
+  }
+
+  /* Respect the user's motion preferences everywhere. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Visible keyboard focus, on top of Tailwind's focus-visible utilities. */
+  :focus-visible {
+    outline: 2px solid theme("colors.accent.blue");
+    outline-offset: 3px;
+  }
+
+  /* Slim, unobtrusive scrollbar that fits the editor aesthetic. */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-ink-950;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-600;
+  }
+}
+
+@layer components {
+  /* Shared "editor window chrome" — the traffic-light dots + title bar that
+     recurs across the hero screen, project cards, and the contact terminal.
+     This is the throughline that ties every section back to the hero's motif. */
+  .editor-dot {
+    @apply h-2.5 w-2.5 rounded-full;
+  }
+
+  /* Reusable glassmorphism surface for cards/panels across the site. */
+  .glass-panel {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] backdrop-blur-xl;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-grid {
+    background-image: theme("backgroundImage.grid");
+    background-size: theme("backgroundSize.grid");
+  }
+  .perspective-1200 {
+    perspective: 1200px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  /* Code, tab names, and tech tags stay LTR even on this RTL page — code
+     should never visually reverse. Apply on any embedded editor/tech chrome. */
+  .ltr {
+    direction: ltr;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-l from-accent-blue via-accent-cyan to-accent-violet bg-clip-text text-transparent;
+  }
+
+  .glow-ring {
+    box-shadow: 0 0 0 1px rgba(97, 175, 239, 0.15), 0 0 40px -8px rgba(97, 175, 239, 0.35);
+  }
+}
