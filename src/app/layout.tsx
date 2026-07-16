@@ -4,32 +4,11 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/data/site";
+import localFont from "next/font/local";
 
 // Vazirmatn covers both display headings and body copy — a single,
 // well-hinted variable Persian typeface avoids mismatched x-heights that
-// happen when pairing two separate Farsi fonts.
-const display = Vazirmatn({
-  subsets: ["arabic", "latin"],
-  variable: "--font-display",
-  weight: ["600", "700", "800"],
-  display: "swap",
-});
 
-const body = Vazirmatn({
-  subsets: ["arabic", "latin"],
-  variable: "--font-body",
-  weight: ["400", "500"],
-  display: "swap",
-});
-
-// Kept for code/editor mockups only — those stay LTR by design (see
-// globals.css `.ltr` utility), so an English monospace face is correct there.
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -51,12 +30,36 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const vazirmatn = localFont({
+  src: [
+    {
+      path: "../fonts/Vazirmatn-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../fonts/Vazirmatn-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const mono = localFont({
+  src: "../fonts/JetBrainsMono-Regular.woff2",
+  variable: "--font-mono",
+  weight: "400",
+  display: "swap",
+});
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="fa"
       // dir="rtl"
-      className={`${display.variable} ${body.variable} ${mono.variable}`}
+      className={`${vazirmatn.variable} ${mono.variable} ${mono.variable}`}
     >
       <body className="relative overflow-x-hidden">
         {/* base grid texture */}
