@@ -46,18 +46,12 @@ const vazirmatn = localFont({
   display: "swap",
 });
 
-// const mono = localFont({
-//   src: "../fonts/JetBrainsMono-Regular.woff2",
-//   variable: "--font-mono",
-//   weight: "400",
-//   display: "swap",
-// });
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="fa"
-      // dir="rtl"
       className={`${vazirmatn.variable} `}
     >
       <body className="relative overflow-x-hidden">
