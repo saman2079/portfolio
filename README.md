@@ -22,18 +22,21 @@ src/
     hero/         # FrameSequenceHero (cinematic), LaptopScene (CSS fallback),
                   # CodeEditorScreen, TypewriterCode
     ui/           # small reusable pieces (SectionHeading, ProjectCard, ...)
-  data/           # site.ts, projects.ts, skills.ts — edit these to personalize
+  i18n/           # fa.ts / en.ts dictionaries (all copy) + site.ts (email, links)
   hooks/
   lib/
   types/
 public/
-  frames/         # drop frame_0001.webp..frame_0120.webp here (see below)
+  frames/d, m/    # 60 WebP frames each (desktop 1280w / mobile 720w), ~1.9 MB total
+  resume/         # FA + EN résumé PDFs served by the download buttons
 scripts/
   extract-frames.sh   # slices a source video into the frame sequence
 ```
 
-To make this your own, edit `src/data/site.ts`, `src/data/projects.ts` and
-`src/data/skills.ts` — no component code needs to change.
+The site is bilingual: Persian at `/` (served from `/fa`) and English at `/en`.
+All copy lives in `src/i18n/fa.ts` and `src/i18n/en.ts`; contact details and
+links live in `src/i18n/site.ts`. Each language downloads its own résumé from
+`public/resume/`.
 
 ## Local development
 
@@ -200,47 +203,24 @@ look into `docker compose up --build -d --no-deps --scale portfolio=2`
 behind Nginx, or a dedicated tool like Watchtower / a CI pipeline that
 builds an image and does a rolling `docker compose up -d`.
 
-## Cinematic hero (real rendered frame sequence)
+## Cinematic hero (scroll-scrubbed frame sequence)
 
-`FrameSequenceHero.tsx` is the Apple-product-page technique: a real,
-photorealistic laptop-opening clip is sliced into individual frames, all
-frames are preloaded, and on scroll the matching frame is drawn to a
-full-bleed `<canvas>`. No 3D engine runs in the browser — the realism comes
-entirely from the source frames you provide, since I can't generate video or
-photorealistic imagery myself in this environment (no image/video-generation
-tool is available here).
+`FrameSequenceHero.tsx` slices a laptop-opening clip into 60 small WebP
+frames (two sets: `public/frames/d` for desktop, `public/frames/m` for phones,
+~1.9 MB combined) and draws the matching frame to a `<canvas>` as you scroll.
 
-**Two ways to get the actual frames:**
+Performance notes: frames load progressively (first frame, then a coarse pass,
+then the rest) with limited concurrency; scrubbing always draws the nearest
+loaded frame; drawing is coalesced into one `requestAnimationFrame`; canvas
+resolution is capped at 1.5x DPR; on portrait screens the render is zoomed on
+the laptop instead of letterboxed.
 
-1. **AI video generation.** Feed your exact cinematic prompt (the "Frame 1 /
-   Frame 30 / Frame 60..." brief) into a text-to-video tool that supports
-   this style — Runway Gen-4, Luma Dream Machine, Kling, or Pika — and export
-   a ~5 second MP4.
-2. **Stock/3D footage.** Royalty-free "laptop opening" 3D renders exist on
-   Pexels (free, no account needed) and on Vecteezy/iStock, several with a
-   green-screen matte specifically so you can key in your own VS Code
-   screen recording in an editor like DaVinci Resolve or After Effects:
-   - https://www.pexels.com/search/videos/opening%20laptop/
-   - https://www.vecteezy.com/free-videos/laptop-opening-animation
-   - https://www.istockphoto.com/videos/laptop-opening-animation (search
-     "laptop opening green screen" for chroma-key versions)
-
-Once you have an MP4 (from either path), slice it into the sequence the
-component expects:
+To replace the footage, slice a new MP4 with:
 
 ```bash
 ./scripts/extract-frames.sh path/to/laptop-reveal.mp4
 ```
 
-This writes `public/frames/frame_0001.webp` … `frame_0120.webp`. Frame count
-(`FRAME_COUNT`) and resolution are configurable at the top of
-`FrameSequenceHero.tsx` and `scripts/extract-frames.sh` — keep them in sync.
-
-**Until real frames are added**, `public/frames/` is empty and
-`FrameSequenceHero` automatically falls back to `LaptopScene.tsx`, the
-CSS-only animated laptop from the previous version, so the hero is never
-broken in the meantime.
-
-`prefers-reduced-motion` is respected everywhere: both hero variants swap in
-a static, non-animated version for users who've asked their OS for reduced
-motion.
+`FRAME_COUNT` in `FrameSequenceHero.tsx` and `scripts/extract-frames.sh` must
+stay in sync. With `prefers-reduced-motion`, a single still of the open laptop
+is shown instead of the scroll animation.

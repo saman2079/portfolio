@@ -5,19 +5,12 @@ interface EditorChromeProps {
   className?: string;
 }
 
-/**
- * The title bar of a fake code editor window: three traffic-light dots on the
- * left, the active file's name centered in a "tab". Purely decorative chrome
- * shared across the hero laptop screen and the project cards so the whole
- * page reads as one consistent "editor" motif.
- */
+/** Title bar of a fake code editor window, shared by cards across the page. Always LTR. */
 export function EditorChrome({ fileName, className }: EditorChromeProps) {
   return (
     <div
-      className={cn(
-        "flex items-center gap-2 border-b border-ink-600 bg-ink-800 px-3 py-2",
-        className
-      )}
+      dir="ltr"
+      className={cn("flex items-center gap-2 border-b border-ink-600 bg-ink-800/80 px-3 py-2", className)}
     >
       <div className="flex gap-1.5">
         <span className="editor-dot bg-accent-red/70" />
