@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { PerformanceMonitor } from "@react-three/drei";
 import { budgets } from "@/lib/three/capability";
 import { worldStore } from "@/lib/store/worldStore";
 import { Scene } from "./Scene";
@@ -16,7 +15,8 @@ interface Props {
 export default function WorldCanvas({ tier, projectCount, onReady }: Props) {
   const [visible, setVisible] = useState(true);
 
-  // Nothing renders while the tab is in the background.
+  // Pause rendering only while the browser tab is hidden. Scrolling must never
+  // unmount or downgrade the world: the core is a persistent page-wide object.
   useEffect(() => {
     const onChange = () => setVisible(document.visibilityState === "visible");
     onChange();
@@ -28,7 +28,7 @@ export default function WorldCanvas({ tier, projectCount, onReady }: Props) {
     <Canvas
       frameloop={visible ? "always" : "never"}
       dpr={[1, budgets[tier].dpr]}
-      camera={{ position: [0, 0, 7], fov: 50, near: 0.1, far: 60 }}
+      camera={{ position: [0, 0, 7.4], fov: 42, near: 0.1, far: 60 }}
       gl={{
         antialias: tier === "high",
         alpha: true,
@@ -38,20 +38,15 @@ export default function WorldCanvas({ tier, projectCount, onReady }: Props) {
       onCreated={({ gl }) => {
         const canvas = gl.domElement;
         canvas.addEventListener("webglcontextlost", (event) => {
+          // Keep the rest of the page intact. Do not turn transient browser
+          // lifecycle events or scroll-related frame dips into a permanent
+          // world unmount.
           event.preventDefault();
           worldStore.fail("context-lost");
         });
         onReady();
       }}
     >
-      {/* Sustained low FPS: drop to the low tier first, then to the 2D fallback. */}
-      <PerformanceMonitor
-        ms={250}
-        iterations={6}
-        flipflops={2}
-        onDecline={() => worldStore.degrade()}
-        onFallback={() => worldStore.fail("slow-frames")}
-      />
       <Scene tier={tier} projectCount={projectCount} />
     </Canvas>
   );
