@@ -79,7 +79,7 @@
     width: 12px;
     height: 12px;
     pointer-events: none;
-    border: 0 solid #5ee6d6;
+    border: 0 solid #A855F7;
     opacity: 0.6;
   }
   .hud-corners::before {
@@ -98,8 +98,8 @@
   /* Page backdrop: two static gradients — no blur filters, cheap on phones. */
   .os-backdrop {
     background-image:
-      radial-gradient(60rem 40rem at 85% -10%, rgba(94, 230, 214, 0.07), transparent),
-      radial-gradient(50rem 40rem at -10% 45%, rgba(198, 120, 221, 0.07), transparent);
+      radial-gradient(60rem 40rem at 85% -10%, rgba(79, 140, 255, 0.10), transparent),
+      radial-gradient(50rem 40rem at -10% 45%, rgba(168, 85, 247, 0.12), transparent);
   }
 
   /* ---- 3D world layer: fades in once the canvas exists ---- */
@@ -123,7 +123,7 @@
   .hud-range::-webkit-slider-runnable-track {
     height: 4px;
     border-radius: 9999px;
-    background: linear-gradient(to right, #5ee6d6 var(--fill, 50%), #232a36 var(--fill, 50%));
+    background: linear-gradient(to right, #A855F7 var(--fill, 50%), #232a36 var(--fill, 50%));
   }
   .hud-range::-moz-range-track {
     height: 4px;
@@ -137,9 +137,9 @@
     height: 20px;
     margin-top: -8px;
     border-radius: 9999px;
-    border: 2px solid #5ee6d6;
+    border: 2px solid #A855F7;
     background: #e6e9ef;
-    box-shadow: 0 0 14px rgba(94, 230, 214, 0.55);
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.62);
   }
   .hud-range::-moz-range-thumb {
     width: 16px;
