@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Hero } from "@/components/sections/Hero";
 import { About } from "@/components/sections/About";
+import { LabSection } from "@/components/sections/LabSection";
 import { Experience } from "@/components/sections/Experience";
 import { Skills } from "@/components/sections/Skills";
 import { Projects } from "@/components/sections/Projects";
@@ -17,6 +18,7 @@ export default function HomePage({ params }: { params: { lang: string } }) {
     <>
       <Hero lang={lang} t={t} />
       <About t={t} />
+      <LabSection t={t} />
       <Experience t={t} />
       <Skills t={t} />
       <Projects t={t} />

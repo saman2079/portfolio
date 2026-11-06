@@ -228,7 +228,7 @@ export function FrameSequenceHero({ t, lang }: Props) {
   // Reduced motion: a single still of the opened laptop, no scroll scrubbing.
   if (reducedMotion) {
     return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center gap-8 px-6 pb-16 pt-28 text-center">
+      <div className="relative flex min-h-screen flex-col items-center justify-center gap-8 px-6 pb-28 pt-28 text-center">
         <div>{intro}</div>
         <picture>
           <source media={MOBILE_QUERY} srcSet={framePath("m", FRAME_COUNT)} />
@@ -275,14 +275,14 @@ export function FrameSequenceHero({ t, lang }: Props) {
 
         <motion.div
           style={{ opacity: ctaOpacity, y: ctaY, pointerEvents: ctaPointer }}
-          className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-ink-950 via-ink-950/80 to-transparent px-6 pb-8 pt-16 text-center sm:pb-12"
+          className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-ink-950 via-ink-950/80 to-transparent px-6 pb-28 pt-16 text-center"
         >
           {cta}
         </motion.div>
 
         <motion.div
           style={{ opacity: cueOpacity }}
-          className="pointer-events-none absolute inset-x-0 bottom-8 z-10 flex flex-col items-center gap-2 text-paper-500 sm:bottom-10"
+          className="pointer-events-none absolute inset-x-0 bottom-24 z-10 flex flex-col items-center gap-2 text-paper-500"
         >
           <span className="font-mono text-[11px]">{t.ui.scrollToOpen}</span>
           <ArrowDown size={16} className="animate-bounce" />

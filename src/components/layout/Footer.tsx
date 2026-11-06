@@ -12,14 +12,14 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
       {/* Status-bar strip — echoes VS Code's blue bottom bar. */}
       <div
         dir="ltr"
-        className="flex items-center justify-between gap-3 bg-accent-blue px-5 py-1.5 font-mono text-[11px] font-medium text-ink-950 sm:px-6"
+        className="flex items-center justify-between gap-3 bg-signal px-5 py-1.5 font-mono text-[11px] font-medium text-ink-950 sm:px-6"
       >
         <span>main*</span>
         <span className="truncate">{t.availability}</span>
         <span>UTF-8</span>
       </div>
 
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 pb-28 pt-8 sm:flex-row">
         <p className="text-center text-xs text-paper-500">
           © {year} {t.name} · {t.footer.built}
         </p>

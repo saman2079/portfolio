@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import localFont from "next/font/local";
 import "../globals.css";
-import { Header } from "@/components/layout/Header";
+import { StatusBar } from "@/components/os/StatusBar";
+import { Dock } from "@/components/os/Dock";
 import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/i18n/site";
 import { dirOf, isLocale, locales, pathFor, type Locale } from "@/i18n/config";
@@ -69,21 +70,27 @@ export default function RootLayout({
   return (
     <html lang={lang} dir={dirOf(lang)} className={vazirmatn.variable}>
       <body className="relative overflow-x-hidden">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-ink-900 focus:px-4 focus:py-2 focus:text-paper-100"
+        >
+          {t.ui.skipToContent}
+        </a>
+
         {/* base grid texture */}
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 bg-grid opacity-40 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]"
         />
-        {/* ambient glows — static, no blur animation, cheap to composite */}
-        <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-40 end-1/4 h-[32rem] w-[32rem] rounded-full bg-accent-blue/10 blur-[120px]" />
-          <div className="absolute top-1/3 -start-40 h-[28rem] w-[28rem] rounded-full bg-accent-violet/10 blur-[120px]" />
-          <div className="absolute bottom-0 end-0 h-[24rem] w-[24rem] rounded-full bg-accent-cyan/10 blur-[110px]" />
-        </div>
+        {/* ambient light: static gradients, no blur filters */}
+        <div aria-hidden className="os-backdrop pointer-events-none fixed inset-0" />
 
-        <Header lang={lang} t={t} />
-        <main className="relative">{children}</main>
+        <StatusBar lang={lang} t={t} />
+        <main id="main" tabIndex={-1} className="relative outline-none">
+          {children}
+        </main>
         <Footer lang={lang} t={t} />
+        <Dock items={t.nav} label={t.ui.navLabel} />
       </body>
     </html>
   );

@@ -20,6 +20,11 @@ const config: Config = {
           300: "#ABB2BF", // secondary text / comments
           500: "#5C6370", // muted / line numbers
         },
+        // OS signal color: HUD lines, active states, the "powered on" glow.
+        signal: {
+          DEFAULT: "#5EE6D6",
+          dim: "#2BA89A",
+        },
         accent: {
           blue: "#61AFEF", // keywords / links / primary accent
           cyan: "#56B6C2", // types
@@ -42,6 +47,8 @@ const config: Config = {
       boxShadow: {
         laptop: "0 60px 120px -40px rgba(0,0,0,0.65)",
         glow: "0 0 40px -8px rgba(97,175,239,0.45)",
+        signal: "0 0 32px -6px rgba(94,230,214,0.5)",
+        hud: "0 0 0 1px rgba(94,230,214,0.05), 0 24px 60px -28px rgba(0,0,0,0.75)",
       },
       backgroundImage: {
         grid: "linear-gradient(to right, rgba(171,178,191,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(171,178,191,0.06) 1px, transparent 1px)",

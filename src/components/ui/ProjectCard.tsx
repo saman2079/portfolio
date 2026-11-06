@@ -1,5 +1,5 @@
 import { ArrowUpRight, Github } from "lucide-react";
-import { EditorChrome } from "./EditorChrome";
+import { Window } from "@/components/os/Window";
 import type { Project } from "@/i18n/types";
 
 interface ProjectCardProps {
@@ -9,13 +9,16 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, labels }: ProjectCardProps) {
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-ink-600 bg-ink-900/80 transition-all duration-300 hover:-translate-y-1 hover:border-accent-blue/40 hover:shadow-glow">
-      <EditorChrome fileName={project.fileName} />
-
-      <div className="flex flex-1 flex-col p-6">
+    <article className="group h-full transition-transform duration-300 focus-within:-translate-y-1 hover:-translate-y-1">
+      <Window
+        title={project.fileName}
+        status={project.year}
+        className="flex h-full flex-col transition-colors group-focus-within:border-signal/40 group-hover:border-signal/40"
+        bodyClassName="flex flex-1 flex-col p-6"
+      >
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-display text-lg font-bold text-paper-100">{project.title}</h3>
-          <span className="shrink-0 rounded-full border border-accent-green/30 bg-accent-green/10 px-2.5 py-0.5 text-[11px] text-accent-green">
+          <span className="shrink-0 rounded-full border border-signal/30 bg-signal/10 px-2.5 py-0.5 text-[11px] text-signal">
             {project.status}
           </span>
         </div>
@@ -25,7 +28,7 @@ export function ProjectCard({ project, labels }: ProjectCardProps) {
           {project.stack.map((tech) => (
             <li
               key={tech}
-              className="rounded border border-ink-600 bg-ink-800 px-2 py-0.5 font-mono text-[11px] text-accent-cyan"
+              className="rounded border border-white/10 bg-ink-800 px-2 py-0.5 font-mono text-[11px] text-accent-cyan"
             >
               {tech}
             </li>
@@ -33,15 +36,15 @@ export function ProjectCard({ project, labels }: ProjectCardProps) {
         </ul>
 
         {(project.liveUrl || project.repoUrl) && (
-          <div className="mt-6 flex items-center gap-5 border-t border-ink-600 pt-4">
+          <div className="mt-6 flex items-center gap-5 border-t border-white/10 pt-4">
             {project.liveUrl && (
               <a
                 href={project.liveUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-accent-blue transition-colors hover:text-paper-100"
+                className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-signal transition-colors hover:text-paper-100"
               >
-                {labels.liveDemo} <ArrowUpRight size={14} className="rtl:-scale-x-100" />
+                {labels.liveDemo} <ArrowUpRight size={14} aria-hidden className="rtl:-scale-x-100" />
               </a>
             )}
             {project.repoUrl && (
@@ -49,14 +52,14 @@ export function ProjectCard({ project, labels }: ProjectCardProps) {
                 href={project.repoUrl}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex items-center gap-1 text-xs text-paper-300 transition-colors hover:text-paper-100"
+                className="inline-flex min-h-11 items-center gap-1 text-xs text-paper-300 transition-colors hover:text-paper-100"
               >
-                <Github size={14} /> {labels.source}
+                <Github size={14} aria-hidden /> {labels.source}
               </a>
             )}
           </div>
         )}
-      </div>
+      </Window>
     </article>
   );
 }

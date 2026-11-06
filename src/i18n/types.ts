@@ -25,22 +25,31 @@ export interface Job {
   points: string[];
 }
 
+import type { CoreShape, LabHue } from "@/lib/lab/palette";
+
+export interface NavLink {
+  label: string;
+  /** Compact label for the dock. */
+  short: string;
+  href: string;
+}
+
 export interface Dictionary {
   meta: { title: string; description: string; keywords: string[]; ogLocale: string };
   name: string;
   role: string;
   tagline: string;
   availability: string;
-  nav: { label: string; href: string }[];
+  nav: NavLink[];
   ui: {
-    sayHi: string;
     downloadResume: string;
     resumeHint: string;
     contactMe: string;
     scrollToOpen: string;
     loadingScene: string;
-    menuOpen: string;
-    menuClose: string;
+    skipToContent: string;
+    navLabel: string;
+    statusLocation: string;
     langLabel: string;
     switchTo: string;
     liveDemo: string;
@@ -48,6 +57,16 @@ export interface Dictionary {
   };
   hero: { whoami: string };
   about: { eyebrow: string; title: string; description: string; bio: string[]; stats: { label: string; value: string }[] };
+  lab: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    windowTitle: string;
+    previewLabel: string;
+    controls: { color: string; light: string; speed: string; particleSize: string; shape: string; reset: string };
+    shapes: Record<CoreShape, string>;
+    hues: Record<LabHue, string>;
+  };
   experience: { eyebrow: string; title: string; description: string; jobs: Job[] };
   skills: { eyebrow: string; title: string; description: string; groups: SkillGroup[] };
   projects: { eyebrow: string; title: string; description: string; items: Project[] };
