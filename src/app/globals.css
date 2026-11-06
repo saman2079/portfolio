@@ -130,7 +130,7 @@
   .hud-range::-moz-range-track {
     height: 4px;
     border-radius: 9999px;
-    background: linear-gradient(to right, #5ee6d6 var(--fill, 50%), #232a36 var(--fill, 50%));
+    background: linear-gradient(to right, #A855F7 var(--fill, 50%), #232a36 var(--fill, 50%));
   }
   .hud-range::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -147,25 +147,25 @@
     width: 16px;
     height: 16px;
     border-radius: 9999px;
-    border: 2px solid #5ee6d6;
+    border: 2px solid #A855F7;
     background: #e6e9ef;
-    box-shadow: 0 0 14px rgba(94, 230, 214, 0.55);
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.62);
   }
   .hud-range:focus-visible {
     outline: none;
   }
   .hud-range:focus-visible::-webkit-slider-thumb {
-    outline: 2px solid #61afef;
+    outline: 2px solid #4F8CFF;
     outline-offset: 3px;
   }
   .hud-range:focus-visible::-moz-range-thumb {
-    outline: 2px solid #61afef;
+    outline: 2px solid #4F8CFF;
     outline-offset: 3px;
   }
 
   /* ---- Lab core preview (pure CSS: transform/opacity animations only) ---- */
   .lab-stage {
-    --lab-color: #56b6c2;
+    --lab-color: #38BDF8;
     --lab-glow: 0.7;
     --lab-speed: 12s;
     --lab-dot: 6px;
