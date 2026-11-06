@@ -88,7 +88,29 @@ function Core() {
   });
 
   return (
-    <group ref={group} position={[0, 0.04, 0]}>
+    <group
+      ref={group}
+      position={[0, 0.04, 0]}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        event.target.setPointerCapture(event.pointerId);
+        document.documentElement.classList.add("core-is-dragging");
+      }}
+      onPointerMove={(event) => {
+        if (event.buttons === 0) return;
+        event.stopPropagation();
+        if (group.current) {
+          group.current.rotation.y += event.movementX * 0.009;
+          group.current.rotation.x += event.movementY * 0.009;
+        }
+      }}
+      onPointerUp={(event) => {
+        event.stopPropagation();
+        event.target.releasePointerCapture(event.pointerId);
+        document.documentElement.classList.remove("core-is-dragging");
+      }}
+      onPointerCancel={() => document.documentElement.classList.remove("core-is-dragging")}
+    >
       {/* Inner luminous planet: layered glass/metal rather than a flat wireframe. */}
       <mesh>
         {lab.shape === "ring" ? <torusGeometry args={[0.78, 0.24, 32, 96]} /> :
