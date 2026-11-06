@@ -248,10 +248,10 @@ export function FrameSequenceHero({ t, lang }: Props) {
 
   return (
     <div ref={containerRef} className="relative h-[230vh] md:h-[260vh]">
-      <div className="sticky top-0 h-screen w-full overflow-hidden bg-ink-950 [height:100svh]">
+      <div className="sticky top-0 h-screen w-full overflow-hidden bg-transparent [height:100svh]">
         <canvas
           ref={canvasRef}
-          className={`h-full w-full transition-opacity duration-700 ${firstReady ? "opacity-100" : "opacity-0"}`}
+          className={`h-full w-full mix-blend-screen transition-opacity duration-700 ${firstReady ? "opacity-90" : "opacity-0"}`}
           aria-hidden
         />
         {/* vignette keeps text readable over the render */}
