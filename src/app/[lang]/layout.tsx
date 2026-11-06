@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "../globals.css";
 import { StatusBar } from "@/components/os/StatusBar";
 import { Dock } from "@/components/os/Dock";
+import { WorldRoot } from "@/components/world/WorldRoot";
 import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/i18n/site";
 import { dirOf, isLocale, locales, pathFor, type Locale } from "@/i18n/config";
@@ -84,6 +85,9 @@ export default function RootLayout({
         />
         {/* ambient light: static gradients, no blur filters */}
         <div aria-hidden className="os-backdrop pointer-events-none fixed inset-0" />
+
+        {/* 3D world: loads lazily, only on capable devices; the 2D page above is the fallback */}
+        <WorldRoot />
 
         <StatusBar lang={lang} t={t} />
         <main id="main" tabIndex={-1} className="relative outline-none">
