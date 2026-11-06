@@ -22,13 +22,13 @@ const config: Config = {
         },
         // OS signal color: HUD lines, active states, the "powered on" glow.
         signal: {
-          DEFAULT: "#5EE6D6",
-          dim: "#2BA89A",
+          DEFAULT: "#A855F7",
+          dim: "#7136C8",
         },
         accent: {
-          blue: "#61AFEF", // keywords / links / primary accent
-          cyan: "#56B6C2", // types
-          violet: "#C678DD", // strings / secondary accent
+          blue: "#4F8CFF", // keywords / links / primary accent
+          cyan: "#38BDF8", // types
+          violet: "#B56BFF", // strings / secondary accent
           green: "#98C379", // success / terminal prompt
           amber: "#E5C07B", // warnings / highlight
           red: "#E06C75", // errors / delete markers
@@ -46,8 +46,8 @@ const config: Config = {
       },
       boxShadow: {
         laptop: "0 60px 120px -40px rgba(0,0,0,0.65)",
-        glow: "0 0 40px -8px rgba(97,175,239,0.45)",
-        signal: "0 0 32px -6px rgba(94,230,214,0.5)",
+        glow: "0 0 44px -8px rgba(139,92,246,0.58)",
+        signal: "0 0 34px -6px rgba(168,85,247,0.58)",
         hud: "0 0 0 1px rgba(94,230,214,0.05), 0 24px 60px -28px rgba(0,0,0,0.75)",
       },
       backgroundImage: {
