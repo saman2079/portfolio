@@ -62,12 +62,13 @@
 
   /* Reusable glassmorphism surface for cards/panels across the site. */
   .glass-panel {
-    @apply rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] backdrop-blur-xl;
+    @apply rounded-2xl border border-violet-400/15 bg-[#080B18]/70 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] backdrop-blur-xl;
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.06), 0 12px 42px -18px rgba(79, 140, 255, 0.22);
   }
 
   /* An "application window": the base surface of every section. */
   .os-window {
-    @apply relative overflow-hidden rounded-xl border border-white/10 bg-ink-900/80 shadow-hud;
+    @apply relative overflow-hidden rounded-xl border border-violet-300/10 bg-[#090D1A]/80 shadow-hud;
   }
 
   /* HUD corner brackets — logical properties so they mirror correctly in RTL. */
@@ -105,10 +106,11 @@
   /* ---- 3D world layer: fades in once the canvas exists ---- */
   .world-layer {
     opacity: 0;
+    mix-blend-mode: screen;
     transition: opacity 0.8s ease;
   }
   .world-layer[data-ready] {
-    opacity: 0.55;
+    opacity: 0.78;
   }
 
   /* ---- Range input (Lab sliders) ---- */
