@@ -29,7 +29,6 @@ function Particles({ count }: { count: number }) {
     const rand = mulberry32(2079);
     const data = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      // Points on a shell between radius 4 and 11 around the origin.
       const r = 4 + rand() * 7;
       const theta = rand() * Math.PI * 2;
       const phi = Math.acos(2 * rand() - 1);
@@ -63,7 +62,6 @@ function Particles({ count }: { count: number }) {
   );
 }
 
-/** Where the core sits and how big it is for each section (wide screens). */
 const corePose: Record<SectionId, { x: number; y: number; s: number }> = {
   top: { x: 2.6, y: 0, s: 1 },
   about: { x: -3.2, y: 0.2, s: 0.8 },
@@ -77,7 +75,8 @@ const corePose: Record<SectionId, { x: number; y: number; s: number }> = {
 function Core() {
   const lab = useLabState();
   const group = useRef<Group>(null);
-  const size = useThree((s) => s.size);
+  const size = useThree((state) => state.size);
+  const mobile = size.width < 768;
   const wide = size.width >= 900;
   const color = hueColors[lab.hue];
 
@@ -88,15 +87,16 @@ function Core() {
     g.rotation.y += delta * 0.6 * speed;
     g.rotation.x += delta * 0.25 * speed;
 
-    // Glide to the pose of the current section; narrow screens tuck the core above the text.
     const pose = corePose[sceneStore.get().section];
     const k = 1 - Math.exp(-delta * 2.5);
-    const tx = wide ? pose.x : 0;
-    const ty = wide ? pose.y : 1.6;
-    const ts = wide ? pose.s : Math.min(pose.s, 0.9);
+    // On phones keep the core in a stable upper-center position for every section.
+    const tx = mobile ? 0 : wide ? pose.x : 0;
+    const ty = mobile ? 1.05 : wide ? pose.y : 1.6;
+    const tz = mobile ? -0.35 : -1;
+    const ts = mobile ? 0.72 : wide ? pose.s : Math.min(pose.s, 0.9);
     g.position.x += (tx - g.position.x) * k;
     g.position.y += (ty - g.position.y) * k;
-    g.position.z += (-1 - g.position.z) * k;
+    g.position.z += (tz - g.position.z) * k;
     g.scale.setScalar(g.scale.x + (ts - g.scale.x) * k);
   });
 
@@ -109,11 +109,19 @@ function Core() {
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={0.15 + (lab.light / 100) * 0.5}
-          roughness={0.4}
-          metalness={0.2}
+          emissiveIntensity={0.28 + (lab.light / 100) * 0.62}
+          roughness={0.24}
+          metalness={0.48}
           wireframe={lab.shape === "orb"}
         />
+      </mesh>
+      <mesh rotation={[0.9, 0.15, -0.35]}>
+        <torusGeometry args={[1.34, 0.018, 8, 96]} />
+        <meshBasicMaterial color="#8B5CF6" transparent opacity={0.9} />
+      </mesh>
+      <mesh rotation={[0.25, -0.55, 0.8]}>
+        <torusGeometry args={[1.48, 0.009, 6, 96]} />
+        <meshBasicMaterial color="#38BDF8" transparent opacity={0.72} />
       </mesh>
     </group>
   );
@@ -124,8 +132,9 @@ export function Scene({ tier, projectCount }: { tier: "high" | "low"; projectCou
 
   return (
     <>
-      <ambientLight intensity={0.25 + (lab.light / 100) * 0.35} />
-      <pointLight position={[4, 3, 5]} intensity={20 + lab.light * 0.6} color={hueColors[lab.hue]} />
+      <ambientLight intensity={0.3 + (lab.light / 100) * 0.4} />
+      <pointLight position={[4, 3, 5]} intensity={18 + lab.light * 0.55} color={hueColors[lab.hue]} />
+      <pointLight position={[-4, -2, 1]} intensity={5} color="#6D4AFF" />
       <Particles count={budgets[tier].particles} />
       <Core />
       <ProjectNodes count={projectCount} />
