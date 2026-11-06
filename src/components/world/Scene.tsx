@@ -6,7 +6,9 @@ import type { Group, Points } from "three";
 import { budgets } from "@/lib/three/capability";
 import { hueColors } from "@/lib/lab/palette";
 import { labStore, useLabState } from "@/lib/store/labStore";
+import { sceneStore, type SectionId } from "@/lib/store/sceneStore";
 import { CameraRig } from "./CameraRig";
+import { ProjectNodes } from "./ProjectNodes";
 
 /** Deterministic PRNG so the field is identical on every load (no flicker between tiers). */
 function mulberry32(seed: number) {
@@ -61,14 +63,22 @@ function Particles({ count }: { count: number }) {
   );
 }
 
+/** Where the core sits and how big it is for each section (wide screens). */
+const corePose: Record<SectionId, { x: number; y: number; s: number }> = {
+  top: { x: 2.6, y: 0, s: 1 },
+  about: { x: -3.2, y: 0.2, s: 0.8 },
+  lab: { x: 0, y: 0, s: 1.5 },
+  experience: { x: 3.2, y: 0, s: 0.7 },
+  skills: { x: -3.2, y: -0.2, s: 0.8 },
+  projects: { x: 0, y: 2.2, s: 0.55 },
+  contact: { x: 0, y: 0.4, s: 1.1 },
+};
+
 function Core() {
   const lab = useLabState();
   const group = useRef<Group>(null);
   const size = useThree((s) => s.size);
-
-  // Wide screens put the core beside the text column; narrow ones tuck it above.
   const wide = size.width >= 900;
-  const position: [number, number, number] = wide ? [2.6, 0, 0] : [0, 1.6, -1];
   const color = hueColors[lab.hue];
 
   useFrame((_, delta) => {
@@ -77,10 +87,21 @@ function Core() {
     const speed = labStore.get().speed / 100;
     g.rotation.y += delta * 0.6 * speed;
     g.rotation.x += delta * 0.25 * speed;
+
+    // Glide to the pose of the current section; narrow screens tuck the core above the text.
+    const pose = corePose[sceneStore.get().section];
+    const k = 1 - Math.exp(-delta * 2.5);
+    const tx = wide ? pose.x : 0;
+    const ty = wide ? pose.y : 1.6;
+    const ts = wide ? pose.s : Math.min(pose.s, 0.9);
+    g.position.x += (tx - g.position.x) * k;
+    g.position.y += (ty - g.position.y) * k;
+    g.position.z += (-1 - g.position.z) * k;
+    g.scale.setScalar(g.scale.x + (ts - g.scale.x) * k);
   });
 
   return (
-    <group ref={group} position={position}>
+    <group ref={group} position={[2.6, 0, 0]}>
       <mesh>
         {lab.shape === "orb" && <icosahedronGeometry args={[1, 2]} />}
         {lab.shape === "ring" && <torusGeometry args={[1, 0.28, 16, 48]} />}
@@ -98,7 +119,7 @@ function Core() {
   );
 }
 
-export function Scene({ tier }: { tier: "high" | "low" }) {
+export function Scene({ tier, projectCount }: { tier: "high" | "low"; projectCount: number }) {
   const lab = useLabState();
 
   return (
@@ -107,6 +128,7 @@ export function Scene({ tier }: { tier: "high" | "low" }) {
       <pointLight position={[4, 3, 5]} intensity={20 + lab.light * 0.6} color={hueColors[lab.hue]} />
       <Particles count={budgets[tier].particles} />
       <Core />
+      <ProjectNodes count={projectCount} />
       <CameraRig />
     </>
   );

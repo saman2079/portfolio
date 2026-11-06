@@ -87,7 +87,7 @@ export default function RootLayout({
         <div aria-hidden className="os-backdrop pointer-events-none fixed inset-0" />
 
         {/* 3D world: loads lazily, only on capable devices; the 2D page above is the fallback */}
-        <WorldRoot />
+        <WorldRoot projectCount={t.projects.items.length} />
 
         <StatusBar lang={lang} t={t} />
         <main id="main" tabIndex={-1} className="relative outline-none">

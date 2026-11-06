@@ -1,5 +1,6 @@
 import { Reveal } from "@/components/ui/Reveal";
 import { ProjectCard } from "@/components/ui/ProjectCard";
+import { ProjectFocus } from "@/components/ui/ProjectFocus";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import type { Dictionary } from "@/i18n/types";
 
@@ -12,7 +13,9 @@ export function Projects({ t }: { t: Dictionary }) {
       <div className="mt-12 grid gap-6 sm:grid-cols-2">
         {projects.items.map((project, i) => (
           <Reveal key={project.slug} delay={(i % 2) * 0.08}>
-            <ProjectCard project={project} labels={t.ui} />
+            <ProjectFocus index={i}>
+              <ProjectCard project={project} labels={t.ui} />
+            </ProjectFocus>
           </Reveal>
         ))}
       </div>

@@ -9,10 +9,11 @@ import { Scene } from "./Scene";
 
 interface Props {
   tier: "high" | "low";
+  projectCount: number;
   onReady: () => void;
 }
 
-export default function WorldCanvas({ tier, onReady }: Props) {
+export default function WorldCanvas({ tier, projectCount, onReady }: Props) {
   const [visible, setVisible] = useState(true);
 
   // Nothing renders while the tab is in the background.
@@ -51,7 +52,7 @@ export default function WorldCanvas({ tier, onReady }: Props) {
         onDecline={() => worldStore.degrade()}
         onFallback={() => worldStore.fail("slow-frames")}
       />
-      <Scene tier={tier} />
+      <Scene tier={tier} projectCount={projectCount} />
     </Canvas>
   );
 }

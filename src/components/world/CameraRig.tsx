@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { MathUtils } from "three";
+import { SECTION_IDS, sceneStore } from "@/lib/store/sceneStore";
 
 /**
  * Camera follows page scroll (dolly + slight descent) and the pointer (parallax).
@@ -35,7 +36,9 @@ export function CameraRig() {
 
   useFrame(({ camera }, delta) => {
     const k = 1 - Math.exp(-delta * 3); // frame-rate independent smoothing
-    const targetX = pointer.current.x * 0.5;
+    // A gentle sideways drift per section so each part of the page is seen from a new angle.
+    const idx = SECTION_IDS.indexOf(sceneStore.get().section);
+    const targetX = pointer.current.x * 0.5 + Math.sin(idx * 0.9) * 0.9;
     const targetY = -pointer.current.y * 0.3 - progress.current * 1.4;
     const targetZ = 7 + progress.current * 2.5;
     camera.position.x = MathUtils.lerp(camera.position.x, targetX, k);

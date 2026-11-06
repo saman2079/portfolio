@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { detectCapability } from "@/lib/three/capability";
 import { useWorld, worldStore } from "@/lib/store/worldStore";
+import { useSectionTracking } from "./useSectionTracking";
 
 /**
  * three.js, R3F and drei live in a separate chunk. It is only requested after
@@ -17,7 +18,7 @@ type IdleWindow = Window & {
   cancelIdleCallback?: (id: number) => void;
 };
 
-export function WorldRoot() {
+export function WorldRoot({ projectCount }: { projectCount: number }) {
   const world = useWorld();
   const [ready, setReady] = useState(false);
 
@@ -33,6 +34,8 @@ export function WorldRoot() {
     return () => window.clearTimeout(id);
   }, []);
 
+  useSectionTracking(world.status === "active");
+
   if (world.status !== "active") return null;
 
   return (
@@ -41,7 +44,11 @@ export function WorldRoot() {
       data-ready={ready || undefined}
       className="world-layer pointer-events-none fixed inset-0"
     >
-      <WorldCanvas tier={world.tier === "low" ? "low" : "high"} onReady={() => setReady(true)} />
+      <WorldCanvas
+        tier={world.tier === "low" ? "low" : "high"}
+        projectCount={projectCount}
+        onReady={() => setReady(true)}
+      />
     </div>
   );
 }
