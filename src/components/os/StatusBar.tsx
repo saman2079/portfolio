@@ -20,6 +20,9 @@ export function StatusBar({ lang, t }: { lang: Locale; t: Dictionary }) {
           SAMAN.OS
         </a>
 
+        <nav aria-label={t.ui.navLabel} className="hidden items-center gap-1 xl:flex">
+          {t.nav.map((item) => <a key={item.href} href={item.href} className="rounded-md px-2 py-1.5 text-[11px] text-paper-400 transition hover:bg-white/5 hover:text-cyan-200">{item.label}</a>)}
+        </nav>
         <p className="hidden min-w-0 truncate text-xs text-paper-300 lg:block">
           <span className="text-signal">●</span> {t.availability}
         </p>
