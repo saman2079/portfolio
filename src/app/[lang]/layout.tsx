@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import localFont from "next/font/local";
 import "../globals.css";
+import "../universe.css";
 import { StatusBar } from "@/components/os/StatusBar";
 import { Dock } from "@/components/os/Dock";
-import { WorldRoot } from "@/components/world/WorldRoot";
+import { UniverseRoot } from "@/components/universe/UniverseRoot";
 import { Footer } from "@/components/layout/Footer";
 import { siteConfig } from "@/i18n/site";
 import { dirOf, isLocale, locales, pathFor, type Locale } from "@/i18n/config";
@@ -86,8 +87,8 @@ export default function RootLayout({
         {/* ambient light: static gradients, no blur filters */}
         <div aria-hidden className="os-backdrop pointer-events-none fixed inset-0" />
 
-        {/* 3D world: loads lazily, only on capable devices; the 2D page above is the fallback */}
-        <WorldRoot projectCount={t.projects.items.length} />
+        {/* 3D universe: loads lazily, only on capable devices; the 2D page is the fallback */}
+        <UniverseRoot lang={lang} name={t.name} role={t.role} tagline={t.tagline} />
 
         <StatusBar lang={lang} t={t} />
         <main id="main" tabIndex={-1} className="relative outline-none">
