@@ -116,10 +116,19 @@
     opacity: 0.92;
     transform: translate3d(0, 0, 0) scale(1);
   }
-  .world-layer[data-section="top"] .world-stage { pointer-events: auto; }
   .world-layer:not([data-section="top"]) {
     opacity: 0;
     transform: translate3d(0, -12vh, 0) scale(0.78);
+    /* Hidden after the fade so it also stops being hit-tested and painted. */
+    visibility: hidden;
+    transition: opacity 0.9s ease, transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s linear 1.1s;
+  }
+  /* Outside the hero the 3D layer must never catch a pointer. This applies at
+     once (not after the fade) and beats the inline pointer-events:auto that
+     react-three-fiber puts on its wrapper element. */
+  .world-layer:not([data-section="top"]),
+  .world-layer:not([data-section="top"]) * {
+    pointer-events: none !important;
   }
   .world-stage {
     position: absolute;
@@ -134,7 +143,6 @@
     display: block;
     width: 100%;
     height: 100%;
-    pointer-events: auto;
     touch-action: pan-y;
     cursor: grab;
   }
