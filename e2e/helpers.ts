@@ -8,11 +8,20 @@ export const PAGES = [
 
 /** Opens a page and waits until the 3D world is really running (otherwise the overlay bugs cannot show). */
 export async function gotoReady(page: Page, path: string) {
+  // CI runners often expose only 2 cores, which the app (correctly) treats as a
+  // weak device and answers with the 2D fallback. Pretend to be a normal machine
+  // so the 3D overlay — the thing under test — is really present.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "hardwareConcurrency", { get: () => 8 });
+  });
   await page.goto(path);
   await expect(
     page.locator("html"),
     "3D world must be active in this browser, otherwise these tests prove nothing"
-  ).toHaveAttribute("data-world", "active", { timeout: 30_000 });
+  ).toHaveAttribute("data-world", "active", { timeout: 30_000 }).catch(async (error) => {
+    const reason = await page.locator("html").getAttribute("data-world-reason");
+    throw new Error(`3D world did not start (fallback reason: ${reason ?? "unknown"})\n${error}`);
+  });
   await expect(page.locator(".world-layer[data-ready]")).toHaveCount(1, { timeout: 30_000 });
 }
 

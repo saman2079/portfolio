@@ -20,6 +20,7 @@ function commit(next: WorldState) {
   if (typeof document !== "undefined") {
     document.documentElement.dataset.world = next.status;
     document.documentElement.dataset.worldTier = next.tier;
+    document.documentElement.dataset.worldReason = next.reason ?? "";
   }
   listeners.forEach((listener) => listener());
 }
