@@ -40,10 +40,9 @@ export default function UniverseCanvas({ tier, active, labels, onReady }: Props)
           event.preventDefault();
           worldStore.fail("context-lost");
         });
-        onReady();
       }}
     >
-      <UniverseScene tier={tier} labels={labels} />
+      <UniverseScene tier={tier} labels={labels} onReady={onReady} />
     </Canvas>
   );
 }

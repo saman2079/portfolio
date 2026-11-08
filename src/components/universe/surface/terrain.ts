@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry } from "three";
 
 /** Pilot's eye height above the ground while landed. */
-export const EYE = 1.5;
+export const EYE = 2.4;
 
 export interface TerrainParams {
   amp: number;

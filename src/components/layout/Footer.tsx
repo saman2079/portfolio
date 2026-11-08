@@ -22,6 +22,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 pb-28 pt-8 sm:flex-row">
         <p className="text-center text-xs text-paper-500">
           © {year} {t.name} · {t.footer.built}
+          <br />
+          <a
+            href="https://sketchfab.com/3d-models/warp-wagon-interior-35c5123c1adc4cac83712c6d0cc22540"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Warp Wagon Interior" by Mattdude — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

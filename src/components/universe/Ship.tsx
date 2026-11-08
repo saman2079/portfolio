@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import { useEffect } from "react";
@@ -11,10 +11,8 @@ import type { DestinationId } from "@/lib/universe/destinations";
 import { EYE } from "./surface/terrain";
 import { baseStore } from "@/lib/lab/baseStore";
 import { buildFlightPath } from "./flightPath";
-import { Cockpit } from "./Cockpit";
 import { SpeedStreaks } from "./SpeedStreaks";
-import { Lever } from "./Lever";
-import { ExteriorShip } from "./ExteriorShip";
+import { HULL_CENTER as HULL } from "./Wagon";
 
 /** how far the pilot can turn the head, in radians */
 const MAX_YAW = 0.85;
@@ -22,8 +20,8 @@ const MAX_PITCH = 0.3;
 
 const UP = new Vector3(0, 1, 0);
 /** the point the outside camera orbits: just ahead of the pilot, in the middle of the hull */
-const HULL_CENTER = new Vector3(0, -0.3, -3);
-const ORBIT_RADIUS = 11.5;
+const HULL_CENTER = new Vector3(...HULL);
+const ORBIT_RADIUS = 19;
 /** centre of the Lab build grid, in ship space while landed (ground is EYE below the pilot) */
 const GRID_CENTER = new Vector3(0, -EYE, -24);
 /** world units per second that counts as "full speed" for effects */
@@ -35,11 +33,9 @@ const MAX_SPEED = 60;
  * planet on arrival, and speed drives the field of view, shake and star streaks.
  * The cockpit is fixed inside the group; the pilot's head (the camera) can turn.
  */
-export function Ship({ quality }: { quality: "high" | "low" }) {
+export function Ship({ quality, children }: { quality: "high" | "low"; children?: ReactNode }) {
   const ship = useRef<Group>(null);
   const head = useRef<Group>(null);
-  const cockpit = useRef<Group>(null);
-  const exterior = useRef<Group>(null);
   const hs = useRef({ x: 0, y: 0 });
   const land = useRef({
     state: "idle" as LandState,
@@ -340,10 +336,6 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
         h.quaternion.slerp(work.qBuild, bv);
       }
 
-      // swap interiors: the cockpit (and its lights, kept in the scene) shrinks away, the hull appears
-      const inside = s < 0.2 && bv < 0.2;
-      if (cockpit.current) cockpit.current.scale.setScalar(inside ? 1 : 0.0001);
-      if (exterior.current) exterior.current.visible = s > 0.12 || bv > 0.1;
     }
 
     /* 5. field of view widens with speed */
@@ -392,11 +384,7 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
 
   return (
     <group ref={ship} name="ship">
-      <group ref={cockpit}>
-        <Cockpit />
-        <Lever />
-      </group>
-      <ExteriorShip groupRef={exterior} />
+      {children}
       <SpeedStreaks count={quality === "high" ? 500 : 220} />
       <group ref={head}>
         <PerspectiveCamera ref={camera} makeDefault fov={58} near={0.05} far={2500} />

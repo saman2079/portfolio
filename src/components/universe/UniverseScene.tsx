@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { Suspense, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { DESTINATIONS, HORIZON_PLANET, SUN_POSITION, type DestinationId } from "@/lib/universe/destinations";
 import { worldStore } from "@/lib/store/worldStore";
@@ -9,6 +9,7 @@ import { Sky, Sun } from "./Sky";
 import { Asteroids } from "./Asteroids";
 import { Station } from "./Station";
 import { Ship } from "./Ship";
+import { Wagon } from "./Wagon";
 import { Effects } from "./Effects";
 import { SurfaceWorld } from "./SurfaceWorld";
 import { flightLive } from "@/lib/store/flightStore";
@@ -54,7 +55,7 @@ function Space({ children }: { children: ReactNode }) {
   return <group ref={group}>{children}</group>;
 }
 
-export function UniverseScene({ tier, labels }: { tier: "high" | "low"; labels: UniverseLabels }) {
+export function UniverseScene({ tier, labels, onReady }: { tier: "high" | "low"; labels: UniverseLabels; onReady: () => void }) {
   return (
     <>
       <color attach="background" args={["#02040a"]} />
@@ -79,7 +80,11 @@ export function UniverseScene({ tier, labels }: { tier: "high" | "low"; labels: 
         <Station />
       </Space>
       <SurfaceWorld tier={tier} />
-      <Ship quality={tier} />
+      <Ship quality={tier}>
+        <Suspense fallback={null}>
+          <Wagon onLoaded={onReady} />
+        </Suspense>
+      </Ship>
       <Effects tier={tier} />
       <PerformanceGuard />
     </>

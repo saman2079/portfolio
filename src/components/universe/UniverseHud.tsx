@@ -385,6 +385,17 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         {flight.outside ? <Eye size={16} aria-hidden /> : <Rocket size={16} aria-hidden />}
       </button>
 
+      {/* model credit (CC BY 4.0 requires attribution) */}
+      <a
+        href="https://sketchfab.com/3d-models/warp-wagon-interior-35c5123c1adc4cac83712c6d0cc22540"
+        target="_blank"
+        rel="noreferrer noopener"
+        dir="ltr"
+        className="pointer-events-auto absolute bottom-1 start-3 hidden text-[9px] text-paper-500 hover:text-paper-300 sm:block"
+      >
+        3D model "Warp Wagon Interior" by Mattdude — CC BY 4.0
+      </a>
+
       {/* fullscreen */}
       {canFull && <button
         type="button"
