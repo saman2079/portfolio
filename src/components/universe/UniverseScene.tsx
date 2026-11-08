@@ -9,7 +9,7 @@ import { Sky, Sun } from "./Sky";
 import { Asteroids } from "./Asteroids";
 import { Station } from "./Station";
 import { Ship } from "./Ship";
-import { Wagon } from "./Wagon";
+import { Cockpit } from "./Cockpit";
 import { Effects } from "./Effects";
 import { SurfaceWorld } from "./SurfaceWorld";
 import { flightLive } from "@/lib/store/flightStore";
@@ -55,7 +55,7 @@ function Space({ children }: { children: ReactNode }) {
   return <group ref={group}>{children}</group>;
 }
 
-export function UniverseScene({ tier, labels, onReady }: { tier: "high" | "low"; labels: UniverseLabels; onReady: () => void }) {
+export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels: UniverseLabels; onReady: () => void }) {
   return (
     <>
       <color attach="background" args={["#02040a"]} />
@@ -71,8 +71,6 @@ export function UniverseScene({ tier, labels, onReady }: { tier: "high" | "low";
           <Planet
             key={cfg.id}
             cfg={cfg}
-            label={labels[cfg.id].title}
-            sublabel={labels[cfg.id].sub}
             segments={tier === "high" ? 64 : 40}
           />
         ))}
@@ -82,7 +80,7 @@ export function UniverseScene({ tier, labels, onReady }: { tier: "high" | "low";
       <SurfaceWorld tier={tier} />
       <Ship quality={tier}>
         <Suspense fallback={null}>
-          <Wagon onLoaded={onReady} />
+          <Cockpit onLoaded={onReady} />
         </Suspense>
       </Ship>
       <Effects tier={tier} />

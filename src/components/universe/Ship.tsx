@@ -12,7 +12,7 @@ import { EYE } from "./surface/terrain";
 import { baseStore } from "@/lib/lab/baseStore";
 import { buildFlightPath } from "./flightPath";
 import { SpeedStreaks } from "./SpeedStreaks";
-import { HULL_CENTER as HULL } from "./Wagon";
+import { HULL_CENTER as HULL } from "./Cockpit";
 
 /** how far the pilot can turn the head, in radians */
 const MAX_YAW = 0.85;
@@ -21,7 +21,7 @@ const MAX_PITCH = 0.3;
 const UP = new Vector3(0, 1, 0);
 /** the point the outside camera orbits: just ahead of the pilot, in the middle of the hull */
 const HULL_CENTER = new Vector3(...HULL);
-const ORBIT_RADIUS = 19;
+const ORBIT_RADIUS = 8;
 /** centre of the Lab build grid, in ship space while landed (ground is EYE below the pilot) */
 const GRID_CENTER = new Vector3(0, -EYE, -24);
 /** world units per second that counts as "full speed" for effects */

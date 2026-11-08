@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Download, Eye, Languages, Maximize2, Minimize2, Mouse, Rocket } from "lucide-react";
+import { ArrowUpRight, Eye, Languages, Maximize2, Minimize2, Mouse, Rocket } from "lucide-react";
 import { pathFor, resumeFor, type Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { DESTINATIONS } from "@/lib/universe/destinations";
@@ -98,52 +98,10 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         </nav>
       </header>
 
-      {/* hero text */}
-      <div
-        className={cn(
-          "absolute inset-x-0 top-24 px-5 transition-opacity duration-500 sm:top-auto sm:bottom-[31%] sm:inset-x-auto sm:start-[7%] sm:max-w-[30rem] sm:px-0",
-          started && "opacity-0 [&_*]:!pointer-events-none"
-        )}
-      >
-        <h1 className="sr-only">
-          {name} — {role}. {tagline}
-        </h1>
-        <div className="pointer-events-auto flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => universeStore.goTo("about")}
-            className={cn(
-              "inline-flex min-h-11 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-5 text-sm font-semibold text-orange-300 shadow-[0_0_26px_rgba(251,146,60,0.35)] transition hover:bg-orange-500/20",
-              caps
-            )}
-          >
-            {u.explore}
-            <ArrowUpRight size={16} aria-hidden className="rtl:-scale-x-100" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setOutside(!flight.outside)}
-            className={cn(
-              "inline-flex min-h-11 items-center gap-2 rounded-lg border border-cyan-300/50 bg-cyan-400/10 px-5 text-sm font-semibold text-cyan-200 backdrop-blur transition hover:bg-cyan-400/20",
-              caps
-            )}
-          >
-            {flight.outside ? u.cockpitView : u.outsideView}
-            {flight.outside ? <Eye size={16} aria-hidden /> : <Rocket size={16} aria-hidden />}
-          </button>
-          <a
-            href={resumeFor(lang)}
-            download
-            className={cn(
-              "inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/25 bg-white/5 px-5 text-sm font-semibold text-paper-100 backdrop-blur transition hover:border-cyan-300/60",
-              caps
-            )}
-          >
-            {u.viewResume}
-            <Download size={16} aria-hidden />
-          </a>
-        </div>
-      </div>
+      {/* the name and role live on the cockpit screens; this keeps them for screen readers */}
+      <h1 className="sr-only">
+        {name} — {role}. {tagline}
+      </h1>
 
       {/* cockpit read-outs */}
       <div className="absolute bottom-[4%] start-[3%] hidden gap-6 md:flex">
@@ -271,13 +229,13 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
 
       {/* model credit (CC BY 4.0 requires attribution) */}
       <a
-        href="https://sketchfab.com/3d-models/warp-wagon-interior-35c5123c1adc4cac83712c6d0cc22540"
+        href="https://sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713"
         target="_blank"
         rel="noreferrer noopener"
         dir="ltr"
         className="pointer-events-auto absolute bottom-1 start-3 hidden text-[9px] text-paper-500 hover:text-paper-300 sm:block"
       >
-        3D models "Warp Wagon Interior" by Mattdude, "Large Wall-Mounted Computer Console" by Inditrion Dradnon — CC BY 4.0
+        3D model "Sci-fi Spaceship Cockpit 02" by NotARealStudio — CC BY 4.0
       </a>
 
       {/* fullscreen */}

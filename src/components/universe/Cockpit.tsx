@@ -1,0 +1,104 @@
+"use client";
+
+import { useEffect, useMemo } from "react";
+import { useGLTF } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
+import {
+  Color,
+  DoubleSide,
+  Mesh,
+  MeshPhysicalMaterial,
+  PMREMGenerator,
+  type Material,
+  type Texture,
+} from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { Screens } from "./Screens";
+import { HoloButton, Hologram } from "./Hologram";
+
+export const MODEL_URL = "/models/cockpit.glb";
+/**
+ * The model is about 1 m wide and looks along +Z. In ship space the pilot's eye is the origin and
+ * the ship flies along -Z, so the model is turned around and scaled up about the pilot's eye.
+ */
+export const MODEL_SCALE = 2.2;
+export const MODEL_EYE: [number, number, number] = [0, 1.5, -0.05];
+/** Vertical distance from the pilot's eye down to the underside of the hull, in ship space. */
+export const EYE_TO_HULL_BOTTOM = (MODEL_EYE[1] - 0.35) * MODEL_SCALE;
+/** Middle of the hull relative to the pilot's eye, in ship space (for the outside camera). */
+export const HULL_CENTER: [number, number, number] = [
+  0,
+  (1.1 - MODEL_EYE[1]) * MODEL_SCALE,
+  -(0.4 - MODEL_EYE[2]) * MODEL_SCALE,
+];
+
+useGLTF.preload(MODEL_URL);
+
+/**
+ * "Sci-fi Spaceship Cockpit 02" by NotARealStudio (CC BY 4.0,
+ * sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713).
+ * Its textures were downscaled to 1024 px. The three screens above the dash, the hologram button
+ * and the hologram are added on top of the model.
+ */
+export function Cockpit({ onLoaded }: { onLoaded?: () => void }) {
+  const gltf = useGLTF(MODEL_URL);
+  const gl = useThree((s) => s.gl);
+
+  const { scene, glass, env } = useMemo(() => {
+    const glass = new MeshPhysicalMaterial({
+      color: new Color("#a8dcff"),
+      transparent: true,
+      opacity: 0.1,
+      roughness: 0.05,
+      metalness: 0,
+      side: DoubleSide,
+      depthWrite: false,
+    });
+    // a neutral studio environment so the metal and plastic read well without any texture download
+    const pmrem = new PMREMGenerator(gl);
+    const env: Texture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+
+    const scene = gltf.scene.clone(true);
+    scene.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh) return;
+      const mat = mesh.material as Material & { envMap?: Texture | null; envMapIntensity?: number };
+      if (mat.name.startsWith("Glass")) {
+        mesh.material = glass;
+        mesh.renderOrder = 5;
+        return;
+      }
+      mat.envMap = env;
+      mat.envMapIntensity = 0.55;
+      mat.needsUpdate = true;
+    });
+    return { scene, glass, env };
+  }, [gltf, gl]);
+
+  useEffect(() => {
+    onLoaded?.();
+  }, [onLoaded]);
+  useEffect(
+    () => () => {
+      glass.dispose();
+      env.dispose();
+    },
+    [glass, env]
+  );
+
+  return (
+    <group
+      scale={MODEL_SCALE}
+      rotation={[0, Math.PI, 0]}
+      position={[MODEL_SCALE * MODEL_EYE[0], -MODEL_SCALE * MODEL_EYE[1], MODEL_SCALE * MODEL_EYE[2]]}
+    >
+      <primitive object={scene} />
+      <pointLight position={[0, 1.75, 0.45]} color="#38bdf8" intensity={2.5} distance={4} />
+      <pointLight position={[0, 1.3, 0.7]} color="#ff9a4d" intensity={1.6} distance={3} />
+      <Screens />
+      <HoloButton />
+      <Hologram />
+    </group>
+  );
+}

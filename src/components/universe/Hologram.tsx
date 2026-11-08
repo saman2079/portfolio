@@ -7,208 +7,218 @@ import {
   CanvasTexture,
   Color,
   DoubleSide,
-  PlaneGeometry,
   SRGBColorSpace,
   type Group,
+  type MeshBasicMaterial,
 } from "three";
 import { DESTINATIONS, type DestinationId } from "@/lib/universe/destinations";
 import { universeText } from "@/i18n/universe";
-import { flightLive, flightStore, setSpeedMul, useFlightPick } from "@/lib/store/flightStore";
+import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { universeStore } from "@/lib/store/universeStore";
 import { holo } from "@/lib/store/holoStore";
+import { Planet } from "./Planet";
 
-/** Hologram that opens above the console screens. Every planet is a button that flies the ship there. */
-const CENTER: [number, number, number] = [0, 0.17, -1.6];
+/** All positions here are in cockpit-model space (metres of the model; the pilot looks along +Z). */
+const BUTTON: [number, number, number] = [0, 1.236, 0.535];
+const RISE = 0.31;
 
-function textTexture(text: string, w: number, h: number, size: number, color: string) {
+/** Should the hologram be shown right now? (it also folds away whenever the pilot leaves the cockpit view) */
+function canShow() {
+  return (
+    holo.open &&
+    !flightLive.surface &&
+    flightLive.view < 0.05 &&
+    !flightLive.build &&
+    !universeStore.get().panel &&
+    flightStore.get().land === "idle"
+  );
+}
+
+/** The round button on the dash that opens and closes the hologram. */
+export function HoloButton() {
+  const rim = useRef<MeshBasicMaterial>(null);
+  useFrame((state) => {
+    const m = rim.current;
+    if (!m) return;
+    const pulse = holo.open ? 0.55 : 0.55 + Math.sin(state.clock.elapsedTime * 3) * 0.35;
+    m.color.setRGB(3.2 * pulse, 1.3 * pulse, 0.25 * pulse);
+  });
+  return (
+    <group
+      position={BUTTON}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.delta > 6) return;
+        holo.open = !holo.open;
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <mesh position={[0, 0.004, 0]}>
+        <cylinderGeometry args={[0.04, 0.045, 0.01, 32]} />
+        <meshBasicMaterial color="#1a0e04" toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0.0105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.022, 0.034, 32]} />
+        <meshBasicMaterial ref={rim} color={new Color(3.2, 1.3, 0.25)} toneMapped={false} side={DoubleSide} />
+      </mesh>
+      <mesh position={[0, 0.0105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.013, 20]} />
+        <meshBasicMaterial color={new Color(0.4, 1.8, 2.6)} toneMapped={false} side={DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function nameTexture(text: string) {
   const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
+  c.width = 384;
+  c.height = 96;
   const x = c.getContext("2d");
   if (!x) return null;
+  let fam = "Tahoma, sans-serif";
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--font-body").trim();
+    if (v) fam = `${v}, ${fam}`;
+  } catch {
+    /* ignore */
+  }
   x.textAlign = "center";
   x.textBaseline = "middle";
-  x.font = `700 ${size}px Tahoma, "Segoe UI", Arial, sans-serif`;
-  x.shadowColor = "rgba(56,189,248,0.9)";
-  x.shadowBlur = 12;
-  x.fillStyle = color;
-  x.fillText(text, w / 2, h / 2 + 2);
+  x.font = `700 54px ${fam}`;
+  x.shadowColor = "rgba(0,0,0,0.9)";
+  x.shadowBlur = 8;
+  x.fillStyle = "#e6f9ff";
+  x.fillText(text, 192, 50);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   return t;
 }
 
-function Label({
-  text,
-  width,
-  height,
-  size = 40,
-  color = "#e0f7ff",
-  position,
-  onClick,
-}: {
-  text: string;
-  width: number;
-  height: number;
-  size?: number;
-  color?: string;
-  position: [number, number, number];
-  onClick?: (e: ThreeEvent<MouseEvent>) => void;
-}) {
-  const map = useMemo(() => textTexture(text, 320, Math.round((320 * height) / width), size, color), [text, width, height, size, color]);
-  useEffect(() => () => map?.dispose(), [map]);
-  return (
-    <mesh position={position} onClick={onClick}>
-      <planeGeometry args={[width, height]} />
-      <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} blending={AdditiveBlending} side={DoubleSide} />
-    </mesh>
-  );
-}
-
-function Planet({
+function Orb({
   id,
-  position,
   title,
+  position,
+  size,
   open,
 }: {
   id: DestinationId;
-  position: [number, number, number];
   title: string;
+  position: [number, number, number];
+  size: number;
   open: MutableRefObject<number>;
 }) {
   const cfg = DESTINATIONS.find((d) => d.id === id);
   const group = useRef<Group>(null);
-  const spin = useRef<Group>(null);
-  const colors = useMemo(
-    () => ({
-      body: new Color(cfg?.colors[2] ?? "#ffffff").multiplyScalar(1.25),
-      wire: new Color(cfg?.colors[1] ?? "#38bdf8").lerp(new Color("#7dd3fc"), 0.5).multiplyScalar(1.4),
-    }),
-    [cfg]
-  );
+  const map = useMemo(() => nameTexture(title), [title]);
+  useEffect(() => () => map?.dispose(), [map]);
+  const body = useMemo(() => (cfg ? { ...cfg, position: [0, 0, 0] as [number, number, number], radius: 1 } : null), [cfg]);
 
   useFrame((_, dt) => {
     const g = group.current;
     if (!g) return;
-    const hovered = universeStore.get().hovered === id;
-    const target = hovered ? 1.3 : 1;
+    const target = universeStore.get().hovered === id ? 1.35 : 1;
     g.scale.setScalar(g.scale.x + (target - g.scale.x) * Math.min(1, dt * 10));
-    if (spin.current) spin.current.rotation.y += dt * (hovered ? 1.6 : 0.5);
   });
 
-  const go = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    if (e.delta > 6 || open.current < 0.8) return;
-    universeStore.goTo(id);
-  };
-  const over = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    if (open.current < 0.8) return;
-    universeStore.hover(id);
-    document.body.style.cursor = "pointer";
-  };
-  const out = () => {
-    if (universeStore.get().hovered === id) universeStore.hover(null);
-    document.body.style.cursor = "";
-  };
-
+  if (!body) return null;
   return (
     <group position={position}>
       <group ref={group}>
-        <group ref={spin}>
-          <mesh>
-            <sphereGeometry args={[0.042, 20, 14]} />
-            <meshBasicMaterial color={colors.body} transparent opacity={0.8} toneMapped={false} depthWrite={false} blending={AdditiveBlending} />
-          </mesh>
-          <mesh>
-            <sphereGeometry args={[0.052, 12, 8]} />
-            <meshBasicMaterial color={colors.wire} wireframe transparent opacity={0.55} toneMapped={false} depthWrite={false} blending={AdditiveBlending} />
-          </mesh>
+        <group scale={size}>
+          <Planet cfg={body} interactive={false} segments={26} />
         </group>
       </group>
-      {/* generous hit area: planet and its name */}
-      <mesh position={[0, -0.04, 0.01]} onClick={go} onPointerOver={over} onPointerOut={out}>
-        <planeGeometry args={[0.2, 0.2]} />
+      <mesh position={[0, -size * 2.1, 0]}>
+        <planeGeometry args={[size * 4.2, size * 1.05]} />
+        <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} side={DoubleSide} />
+      </mesh>
+      <mesh
+        position={[0, -size * 0.6, 0.002]}
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          if (e.delta > 6 || open.current < 0.8) return;
+          universeStore.goTo(id);
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          if (open.current < 0.8) return;
+          universeStore.hover(id);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          if (universeStore.get().hovered === id) universeStore.hover(null);
+          document.body.style.cursor = "";
+        }}
+      >
+        <planeGeometry args={[size * 4.2, size * 5]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <Label text={title} width={0.2} height={0.05} size={46} position={[0, -0.085, 0]} />
     </group>
   );
 }
 
-export function Hologram({ ready }: { ready: boolean }) {
+/** Six small 3D planets that rise from the dash button. Tap one and the ship flies there. */
+export function Hologram() {
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height));
   const portrait = aspect < 0.8;
   const root = useRef<Group>(null);
+  const lift = useRef<Group>(null);
+  const beam = useRef<MeshBasicMaterial>(null);
   const k = useRef(0);
   const open = useRef(0);
-  const speed = useFlightPick((h) => Math.round(h.speedMul * 10) / 10);
   const lang = typeof document !== "undefined" && document.documentElement.lang.startsWith("fa") ? "fa" : "en";
   const t = universeText[lang];
 
-  const layout = useMemo(() => {
+  const size = portrait ? 0.026 : 0.034;
+  const items = useMemo(() => {
     const cols = portrait ? 3 : DESTINATIONS.length;
+    const gx = portrait ? 0.075 : 0.105;
+    const gy = 0.15;
     const rows = Math.ceil(DESTINATIONS.length / cols);
-    const sx = portrait ? 0.21 : 0.225;
-    const sy = 0.2;
-    const items = DESTINATIONS.map((d, i) => {
+    return DESTINATIONS.map((d, i) => {
       const r = Math.floor(i / cols);
       const c = i % cols;
       const inRow = Math.min(cols, DESTINATIONS.length - r * cols);
-      const x = (c - (inRow - 1) / 2) * sx;
-      const y = ((rows - 1) / 2 - r) * sy;
-      return { id: d.id, pos: [x, y, 0] as [number, number, number] };
+      return {
+        id: d.id,
+        pos: [(c - (inRow - 1) / 2) * gx, ((rows - 1) / 2 - r) * gy, 0] as [number, number, number],
+      };
     });
-    const w = cols * sx + 0.08;
-    const h = rows * sy + 0.1;
-    return { items, w, h, rows };
   }, [portrait]);
-
-  const frame = useMemo(() => new PlaneGeometry(layout.w, layout.h), [layout]);
-  useEffect(() => () => frame.dispose(), [frame]);
 
   useFrame((state, dt) => {
     const g = root.current;
     if (!g) return;
-    const want =
-      ready &&
-      holo.open &&
-      !flightLive.surface &&
-      flightLive.view < 0.05 &&
-      !flightLive.build &&
-      !universeStore.get().panel &&
-      flightStore.get().land === "idle";
-    k.current = Math.min(1, Math.max(0, k.current + (want ? 1 : -1) * dt * 2.2));
+    k.current = Math.min(1, Math.max(0, k.current + (canShow() ? 1 : -1) * dt * 1.8));
     const e = k.current * k.current * (3 - 2 * k.current);
     open.current = e;
     g.visible = e > 0.002;
-    const flicker = e < 1 ? 0.7 + Math.sin(state.clock.elapsedTime * 55) * 0.3 : 1;
-    g.scale.set(e * flicker, Math.max(0.001, e), 1);
+    if (lift.current) {
+      lift.current.position.y = RISE * e;
+      const flick = e < 1 ? 0.75 + Math.sin(state.clock.elapsedTime * 50) * 0.25 : 1;
+      lift.current.scale.setScalar(Math.max(0.001, e) * flick);
+    }
+    if (beam.current) beam.current.opacity = 0.18 * e;
   });
 
-  const step = (f: number) => (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    if (e.delta > 6 || open.current < 0.8) return;
-    setSpeedMul(flightLive.speedMul * f);
-  };
-  const rowY = -layout.h / 2 - 0.045;
-
   return (
-    <group ref={root} position={CENTER} rotation={[-0.16, 0, 0]} visible={false}>
-      <mesh geometry={frame}>
-        <meshBasicMaterial color="#38bdf8" transparent opacity={0.07} depthWrite={false} blending={AdditiveBlending} side={DoubleSide} toneMapped={false} />
+    <group ref={root} position={BUTTON} rotation={[0, Math.PI, 0]} visible={false}>
+      {/* light beam from the button to the planets */}
+      <mesh position={[0, RISE / 2, 0]}>
+        <cylinderGeometry args={[0.1, 0.03, RISE, 24, 1, true]} />
+        <meshBasicMaterial ref={beam} color={new Color(0.3, 1.1, 1.8)} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} side={DoubleSide} toneMapped={false} />
       </mesh>
-      <lineSegments>
-        <edgesGeometry args={[frame]} />
-        <lineBasicMaterial color={new Color(0.2, 0.9, 1.6)} transparent opacity={0.7} toneMapped={false} />
-      </lineSegments>
-      {layout.items.map((it) => (
-        <Planet key={it.id} id={it.id} position={it.pos} title={t.places[it.id].title} open={open} />
-      ))}
-      {/* flight speed: − 1.0x + */}
-      <Label text="−" width={0.07} height={0.07} size={64} position={[-0.17, rowY, 0]} onClick={step(1 / 1.25)} />
-      <Label text={`${speed.toFixed(1)}x`} width={0.2} height={0.06} size={44} color="#7dd3fc" position={[0, rowY, 0]} />
-      <Label text="+" width={0.07} height={0.07} size={64} position={[0.17, rowY, 0]} onClick={step(1.25)} />
+      <group ref={lift}>
+        {items.map((it) => (
+          <Orb key={it.id} id={it.id} title={t.places[it.id].title} position={it.pos} size={size} open={open} />
+        ))}
+      </group>
     </group>
   );
 }

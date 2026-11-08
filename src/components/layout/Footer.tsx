@@ -24,23 +24,13 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           © {year} {t.name} · {t.footer.built}
           <br />
           <a
-            href="https://sketchfab.com/3d-models/warp-wagon-interior-35c5123c1adc4cac83712c6d0cc22540"
+            href="https://sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713"
             target="_blank"
             rel="noreferrer noopener"
             dir="ltr"
             className="underline-offset-2 hover:underline"
           >
-            3D model "Warp Wagon Interior" by Mattdude — CC BY 4.0
-          </a>
-          {" · "}
-          <a
-            href="https://sketchfab.com/3d-models/large-wall-mounted-computer-console-298b7d9b68064618a3819d1a8fae4baf"
-            target="_blank"
-            rel="noreferrer noopener"
-            dir="ltr"
-            className="underline-offset-2 hover:underline"
-          >
-            3D model "Large Wall-Mounted Computer Console" by Inditrion Dradnon — CC BY 4.0
+            3D model "Sci-fi Spaceship Cockpit 02" by NotARealStudio — CC BY 4.0
           </a>
         </p>
 
