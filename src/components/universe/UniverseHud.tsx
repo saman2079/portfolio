@@ -393,7 +393,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         dir="ltr"
         className="pointer-events-auto absolute bottom-1 start-3 hidden text-[9px] text-paper-500 hover:text-paper-300 sm:block"
       >
-        3D model "Warp Wagon Interior" by Mattdude — CC BY 4.0
+        3D models "Warp Wagon Interior" by Mattdude, "Large Wall-Mounted Computer Console" by Inditrion Dradnon — CC BY 4.0
       </a>
 
       {/* fullscreen */}

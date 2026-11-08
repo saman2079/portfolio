@@ -32,6 +32,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Warp Wagon Interior" by Mattdude — CC BY 4.0
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/large-wall-mounted-computer-console-298b7d9b68064618a3819d1a8fae4baf"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Large Wall-Mounted Computer Console" by Inditrion Dradnon — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">
