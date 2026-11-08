@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from "react";
+
+export type LandState = "idle" | "descending" | "landed" | "ascending";
 import { DESTINATION_IDS, type DestinationId } from "@/lib/universe/destinations";
 
 /** The flight path has one segment per destination (start → first planet → … → last planet). */
@@ -37,6 +39,10 @@ export const flightLive = {
   flying: false,
   /** the pilot is dragging the throttle lever (so a drag must not turn the head) */
   grabbing: false,
+  /** a landing command waiting for the ship (handled in its frame loop) */
+  landCmd: null as null | { type: "land" | "takeoff" | "reset"; id?: DestinationId },
+  /** the surface world replaces space (landed, or lifting off) */
+  surface: false,
   /** the outside (chase camera) view is wanted */
   outside: false,
   /** 0 = in the cockpit, 1 = outside, eased by the ship */
@@ -56,6 +62,8 @@ export interface FlightHud {
   arrivedId: DestinationId | null;
   speedMul: number;
   outside: boolean;
+  land: LandState;
+  landId: DestinationId | null;
 }
 
 const initial: FlightHud = {
@@ -68,6 +76,8 @@ const initial: FlightHud = {
   arrivedId: null,
   speedMul: 1,
   outside: false,
+  land: "idle",
+  landId: null,
 };
 
 let hud: FlightHud = initial;
@@ -82,7 +92,9 @@ const same = (a: FlightHud, b: FlightHud) =>
   a.nextDist === b.nextDist &&
   a.arrivedId === b.arrivedId &&
   a.speedMul === b.speedMul &&
-  a.outside === b.outside;
+  a.outside === b.outside &&
+  a.land === b.land &&
+  a.landId === b.landId;
 
 let flightStoreRef: { get: () => FlightHud; publish: (n: FlightHud) => void } | null = null;
 /** Switch between the cockpit and the outside camera (the HUD updates at once). */
@@ -107,6 +119,30 @@ export const flightStore = {
 };
 
 flightStoreRef = flightStore;
+
+/** Dive into the planet the ship is docked at (only works while arrived and not already landing). */
+export const startLanding = (id: DestinationId) => {
+  const h = flightStore.get();
+  if (h.land !== "idle" || h.arrivedId !== id) return;
+  flightLive.landCmd = { type: "land", id };
+};
+/** Lift off from the surface and go back to orbit. */
+export const startTakeoff = () => {
+  if (flightStore.get().land === "landed") flightLive.landCmd = { type: "takeoff" };
+};
+/** Drop any landing state at once (used when leaving to the classic page). */
+export const resetLanding = () => {
+  if (flightStore.get().land !== "idle") flightLive.landCmd = { type: "reset" };
+};
+
+/** Subscribe to one primitive of the HUD snapshot, so callers do not re-render ten times a second. */
+export function useFlightPick<T extends string | number | boolean | null>(pick: (h: FlightHud) => T): T {
+  return useSyncExternalStore(
+    flightStore.subscribe,
+    () => pick(flightStore.get()),
+    () => pick(initial)
+  );
+}
 
 export const useFlight = (): FlightHud =>
   useSyncExternalStore(flightStore.subscribe, flightStore.get, () => initial);

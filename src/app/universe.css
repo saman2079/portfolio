@@ -85,3 +85,16 @@ html[data-world="active"] #top {
 .universe-rail-dot {
   transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+/* Atmosphere-entry flash: driven per frame by the ship through --land-flash / --land-color. */
+.universe-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: var(--land-flash, 0);
+  background: radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.96) 0%, var(--land-color, #8cf) 52%, var(--land-color, #8cf) 100%);
+}
+html[data-surface="on"] .universe-label {
+  display: none;
+}

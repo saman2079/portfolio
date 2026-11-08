@@ -6,7 +6,9 @@ import { PerspectiveCamera } from "@react-three/drei";
 import { useEffect } from "react";
 import { Euler, MathUtils, Matrix4, Quaternion, Vector3, type Group, type PerspectiveCamera as ThreeCamera } from "three";
 import { DESTINATIONS } from "@/lib/universe/destinations";
-import { SEGMENTS, flightLive, flightStore } from "@/lib/store/flightStore";
+import { SEGMENTS, flightLive, flightStore, type LandState } from "@/lib/store/flightStore";
+import type { DestinationId } from "@/lib/universe/destinations";
+import { EYE } from "./surface/terrain";
 import { buildFlightPath } from "./flightPath";
 import { Cockpit } from "./Cockpit";
 import { SpeedStreaks } from "./SpeedStreaks";
@@ -36,6 +38,29 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
   const cockpit = useRef<Group>(null);
   const exterior = useRef<Group>(null);
   const hs = useRef({ x: 0, y: 0 });
+  const land = useRef({
+    state: "idle" as LandState,
+    id: null as DestinationId | null,
+    index: 0,
+    t: 0,
+    flash: 0,
+    shown: -1,
+    dock: new Vector3(),
+    target: new Vector3(),
+  });
+
+  // never leave the page locked or tinted if the 3D layer goes away mid-landing
+  useEffect(
+    () => () => {
+      const root = document.documentElement;
+      root.style.overflow = "";
+      root.style.setProperty("--land-flash", "0");
+      flightLive.surface = false;
+      flightLive.landCmd = null;
+      flightStore.publish({ ...flightStore.get(), land: "idle", landId: null });
+    },
+    []
+  );
   const camera = useRef<ThreeCamera>(null);
   const publishAt = useRef(0);
   const started = useRef(false);
@@ -164,6 +189,96 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
     work.q.slerp(work.qIdentity, 1 - MathUtils.smoothstep(u, 0, 0.07));
     g.quaternion.slerp(work.q, 1 - Math.exp(-dt * 5));
 
+    /* 3b. landing: dive into the planet, swap to its surface world, and back */
+    const L = land.current;
+    const setLand = (state: LandState) => {
+      L.state = state;
+      L.t = 0;
+      live.surface = state === "landed" || state === "ascending";
+      document.documentElement.style.overflow = state === "idle" ? "" : "hidden";
+      flightStore.publish({ ...flightStore.get(), land: state, landId: state === "idle" ? null : L.id });
+    };
+    const cmd = live.landCmd;
+    if (cmd) {
+      live.landCmd = null;
+      if (cmd.type === "land" && L.state === "idle" && cmd.id) {
+        const index = DESTINATIONS.findIndex((d) => d.id === cmd.id);
+        const cfg = DESTINATIONS[index];
+        const planet = work.planets[index];
+        if (cfg && planet) {
+          L.id = cmd.id;
+          L.index = index;
+          L.dock.copy(work.pos);
+          L.target.copy(work.pos).sub(planet).normalize().multiplyScalar(cfg.radius * 1.03).add(planet);
+          document.documentElement.style.setProperty("--land-color", cfg.atmosphere);
+          setLand("descending");
+        }
+      } else if (cmd.type === "takeoff" && L.state === "landed") {
+        setLand("ascending");
+      } else if (cmd.type === "reset" && L.state !== "idle") {
+        L.flash = 0;
+        setLand("idle");
+        g.position.copy(work.pos);
+        g.quaternion.copy(work.q);
+      }
+    }
+
+    if (L.state === "descending") {
+      L.t += dt;
+      const p = MathUtils.clamp(L.t / 3.4, 0, 1);
+      const e = Math.pow(p, 2.2);
+      const planet = work.planets[L.index];
+      g.position.copy(L.dock).lerp(L.target, e);
+      if (planet) {
+        work.m.lookAt(g.position, planet, UP);
+        work.q.setFromRotationMatrix(work.m);
+        g.quaternion.slerp(work.q, 1 - Math.exp(-dt * 6));
+      }
+      live.speedNorm = Math.max(live.speedNorm, 0.2 + 0.8 * p);
+      live.vLocal[0] = 0;
+      live.vLocal[1] = 0;
+      live.vLocal[2] = -45 * (0.3 + p);
+      L.flash = MathUtils.smoothstep(p, 0.78, 1);
+      if (p >= 1) {
+        setLand("landed");
+        g.quaternion.identity();
+      }
+    } else if (L.state === "landed") {
+      L.t += dt;
+      const p = MathUtils.clamp(L.t / 3, 0, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      g.position.set(0, 7 * (1 - ease), 0);
+      g.quaternion.identity();
+      live.speedNorm = 0.25 * (1 - p);
+      live.vLocal[0] = 0;
+      live.vLocal[1] = -30 * (1 - p) * (1 - p);
+      live.vLocal[2] = 0;
+      L.flash = Math.max(0, 1 - L.t / 1.2);
+    } else if (L.state === "ascending") {
+      L.t += dt;
+      const p = MathUtils.clamp(L.t / 2.6, 0, 1);
+      g.position.set(0, 40 * Math.pow(p, 2.2), 0);
+      g.quaternion.identity();
+      live.speedNorm = 0.2 + 0.8 * p;
+      live.vLocal[0] = 0;
+      live.vLocal[1] = 60 * p;
+      live.vLocal[2] = 0;
+      L.flash = MathUtils.smoothstep(p, 0.6, 1);
+      if (p >= 1) {
+        setLand("idle");
+        g.position.copy(work.pos);
+        g.quaternion.copy(work.q);
+      }
+    } else {
+      L.flash += (0 - L.flash) * (1 - Math.exp(-dt * 3));
+      if (L.flash < 0.004) L.flash = 0;
+    }
+    if (Math.abs(L.flash - L.shown) > 0.004) {
+      L.shown = L.flash;
+      document.documentElement.style.setProperty("--land-flash", L.flash.toFixed(3));
+    }
+    void EYE;
+
     /* 4. head: pointer look-around plus shake that grows with speed */
     const t = state.clock.elapsedTime;
     const shake = live.speedNorm * live.speedNorm * 0.006;
@@ -254,6 +369,8 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
         nextDist: next && nextPlanet ? Math.max(0, Math.round(work.pos.distanceTo(nextPlanet) - next.radius)) : null,
         arrivedId,
         speedMul: Math.round(live.speedMul * 100) / 100,
+        land: L.state,
+        landId: L.state === "idle" ? null : L.id,
       });
     }
   });

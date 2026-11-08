@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { DESTINATIONS, HORIZON_PLANET, SUN_POSITION, type DestinationId } from "@/lib/universe/destinations";
 import { worldStore } from "@/lib/store/worldStore";
@@ -10,6 +10,9 @@ import { Asteroids } from "./Asteroids";
 import { Station } from "./Station";
 import { Ship } from "./Ship";
 import { Effects } from "./Effects";
+import { SurfaceWorld } from "./SurfaceWorld";
+import { flightLive } from "@/lib/store/flightStore";
+import type { Group } from "three";
 
 export type UniverseLabels = Record<DestinationId, { title: string; sub: string }>;
 
@@ -42,6 +45,15 @@ function PerformanceGuard() {
   return null;
 }
 
+/** Everything that is "space": hidden while the ship is on a planet's surface. */
+function Space({ children }: { children: ReactNode }) {
+  const group = useRef<Group>(null);
+  useFrame(() => {
+    if (group.current) group.current.visible = !flightLive.surface;
+  });
+  return <group ref={group}>{children}</group>;
+}
+
 export function UniverseScene({ tier, labels }: { tier: "high" | "low"; labels: UniverseLabels }) {
   return (
     <>
@@ -50,20 +62,23 @@ export function UniverseScene({ tier, labels }: { tier: "high" | "low"; labels: 
       <hemisphereLight args={["#8fb0ff", "#1c1420", 0.45]} />
       <directionalLight position={SUN_POSITION} intensity={2.4} color="#ffe2c4" />
 
-      <Sky tier={tier} />
-      <Sun />
-      <Planet cfg={HORIZON_PLANET} interactive={false} sunlit segments={tier === "high" ? 96 : 56} />
-      {DESTINATIONS.map((cfg) => (
-        <Planet
-          key={cfg.id}
-          cfg={cfg}
-          label={labels[cfg.id].title}
-          sublabel={labels[cfg.id].sub}
-          segments={tier === "high" ? 64 : 40}
-        />
-      ))}
-      <Asteroids count={tier === "high" ? 150 : 64} />
-      <Station />
+      <Space>
+        <Sky tier={tier} />
+        <Sun />
+        <Planet cfg={HORIZON_PLANET} interactive={false} sunlit segments={tier === "high" ? 96 : 56} />
+        {DESTINATIONS.map((cfg) => (
+          <Planet
+            key={cfg.id}
+            cfg={cfg}
+            label={labels[cfg.id].title}
+            sublabel={labels[cfg.id].sub}
+            segments={tier === "high" ? 64 : 40}
+          />
+        ))}
+        <Asteroids count={tier === "high" ? 150 : 64} />
+        <Station />
+      </Space>
+      <SurfaceWorld tier={tier} />
       <Ship quality={tier} />
       <Effects tier={tier} />
       <PerformanceGuard />

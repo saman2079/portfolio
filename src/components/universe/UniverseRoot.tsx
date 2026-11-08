@@ -5,7 +5,7 @@ import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { detectCapability } from "@/lib/three/capability";
 import { useWorld, worldStore } from "@/lib/store/worldStore";
 import { useSceneState } from "@/lib/store/sceneStore";
-import { flightLive } from "@/lib/store/flightStore";
+import { flightLive, useFlightPick } from "@/lib/store/flightStore";
 import { attachFlight } from "@/lib/flight/controller";
 import { useSectionTracking } from "@/components/world/useSectionTracking";
 import { setLitePreference } from "@/lib/three/preference";
@@ -74,6 +74,7 @@ export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
     return Object.fromEntries(DESTINATION_IDS.map((id) => [id, places[id]])) as UniverseLabels;
   }, [lang]);
 
+  const land = useFlightPick((h) => h.land);
   const on = world.status === "active" && ready && scene.section === "top";
 
   useEffect(() => {
@@ -82,6 +83,14 @@ export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
       flightLive.enabled = false;
     };
   }, [on]);
+
+  // hide the 3D planet labels while standing on a surface
+  useEffect(() => {
+    document.documentElement.dataset.surface = land === "landed" ? "on" : "off";
+    return () => {
+      delete document.documentElement.dataset.surface;
+    };
+  }, [land]);
 
   // CSS hooks: hide the legacy hero and the 2D chrome only while the universe is on screen
   useEffect(() => {
@@ -126,6 +135,7 @@ export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
       </div>
       <UniverseHud lang={lang} name={name} role={role} tagline={tagline} />
       <SectionPanel lang={lang} content={content} />
+      <div aria-hidden className="universe-flash" />
     </div>
   );
 }

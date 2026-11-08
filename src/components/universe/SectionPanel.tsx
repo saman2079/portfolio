@@ -204,10 +204,16 @@ export function SectionPanel({ lang, content }: { lang: Locale; content: Univers
   const flight = useFlight();
   const scroller = useRef<HTMLDivElement>(null);
 
-  // arrived at the planet that was clicked → open its panel
+  // landed: let the descent settle, then open the planet's card
+  const landState = flight.land;
+  const landId = flight.landId;
   useEffect(() => {
-    if (pending && flight.arrivedId === pending) universeStore.openPanel(pending);
-  }, [pending, flight.arrivedId]);
+    if (landState === "landed" && landId) {
+      const timer = window.setTimeout(() => universeStore.openPanel(landId), 2400);
+      return () => window.clearTimeout(timer);
+    }
+    if (landState === "ascending" || landState === "idle") universeStore.closePanel();
+  }, [landState, landId]);
 
   // the pilot takes over by scrolling: forget the pending arrival
   useEffect(() => {
@@ -226,8 +232,8 @@ export function SectionPanel({ lang, content }: { lang: Locale; content: Univers
   // close when the ship leaves the planet, or on Escape
   useEffect(() => {
     if (!panel) return;
-    if (Math.abs(flight.shipU - stationU(panel)) > 0.1) universeStore.closePanel();
-  }, [panel, flight.shipU]);
+    if (flight.land === "idle" && Math.abs(flight.shipU - stationU(panel)) > 0.1) universeStore.closePanel();
+  }, [panel, flight.shipU, flight.land]);
   useEffect(() => {
     if (!panel) return;
     const onKey = (e: KeyboardEvent) => {

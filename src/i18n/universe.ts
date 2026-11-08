@@ -13,6 +13,9 @@ export interface UniverseText {
   deepSpace: string;
   distance: string;
   speed: string;
+  takeOff: string;
+  info: string;
+  landing: string;
   lite: string;
   back3d: string;
   close: string;
@@ -45,6 +48,9 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "فضای عمیق",
     distance: "فاصله",
     speed: "سرعت",
+    takeOff: "برخاستن",
+    info: "اطلاعات",
+    landing: "ورود به جو سیاره…",
     lite: "نسخه ساده",
     back3d: "بازگشت به جهان سه‌بعدی",
     close: "بستن",
@@ -82,6 +88,9 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "Deep space",
     distance: "Distance",
     speed: "Speed",
+    takeOff: "Take off",
+    info: "Info",
+    landing: "Entering the atmosphere…",
     lite: "Lite version",
     back3d: "Back to the 3D universe",
     close: "Close",

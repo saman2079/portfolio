@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { DESTINATIONS, type DestinationId } from "@/lib/universe/destinations";
 import { flyToStation, openSection } from "@/lib/flight/controller";
+import { resetLanding, startLanding, startTakeoff } from "@/lib/store/flightStore";
 
 export interface UniverseState {
   /** destination currently hovered (in 3D or in the HUD list) */
@@ -35,6 +36,9 @@ export const universeStore = {
     set({ pending: id, panel: state.panel === id ? id : null });
     flyToStation(id);
   },
+  /** Dive into the planet the ship has docked at. */
+  land: (id: DestinationId) => startLanding(id),
+  takeOff: () => startTakeoff(),
   /** Stop waiting for an arrival (the pilot took over by scrolling). */
   cancelPending: () => set({ pending: null }),
   openPanel: (id: DestinationId) => set({ panel: id, pending: null }),
@@ -43,6 +47,7 @@ export const universeStore = {
   openClassic(id: DestinationId) {
     const section = DESTINATIONS.find((d) => d.id === id)?.section ?? id;
     set({ panel: null, pending: null });
+    resetLanding();
     openSection(section);
   },
 };

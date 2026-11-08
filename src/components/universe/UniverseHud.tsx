@@ -67,8 +67,10 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
 
   // letter-spacing and upper-casing only suit Latin text; they would break Persian joins
   const caps = lang === "en" ? "uppercase tracking-[0.16em]" : "";
+  const away = flight.land !== "idle";
+  const landed = flight.land === "landed";
   const started = flight.shipU > 0.035;
-  const nearPlace = flight.nearId ? u.places[flight.nearId].title : null;
+  const nearPlace = landed && flight.landId ? u.places[flight.landId].title : flight.nearId ? u.places[flight.nearId].title : null;
   const arrived = flight.arrivedId;
   const focus = DESTINATIONS.find((d) => d.id === (hovered ?? "projects")) ?? DESTINATIONS[0];
 
@@ -171,7 +173,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       <div
         className={cn(
           "absolute bottom-[15%] end-[3%] hidden items-end gap-3 transition-opacity duration-300 md:flex",
-          panel && "pointer-events-none opacity-0"
+          (panel || away) && "pointer-events-none opacity-0"
         )}
       >
         <div className="pointer-events-auto universe-glass w-52 p-3">
@@ -224,7 +226,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </div>
 
       {/* destinations (mobile) */}
-      <div className={cn("pointer-events-auto absolute inset-x-0 bottom-[17%] flex gap-2 overflow-x-auto px-4 pb-1 md:hidden", panel && "hidden")}>
+      <div className={cn("pointer-events-auto absolute inset-x-0 bottom-[17%] flex gap-2 overflow-x-auto px-4 pb-1 md:hidden", (panel || away) && "hidden")}>
         {DESTINATIONS.map((d) => (
           <button
             key={d.id}
@@ -267,19 +269,51 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </div>
 
       {/* throttle (mobile; on desktop it sits in the read-out and on the console lever) */}
-      <div className={cn("universe-glass pointer-events-auto absolute inset-x-4 bottom-[9%] px-4 py-2 md:hidden", panel && "hidden")}>
+      <div className={cn("universe-glass pointer-events-auto absolute inset-x-4 bottom-[9%] px-4 py-2 md:hidden", (panel || away) && "hidden")}>
         <SpeedSlider label={u.flightSpeed} value={flight.speedMul} />
+      </div>
+
+      {/* on the surface: take off / reopen the info card */}
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-16 flex justify-center gap-3 px-4 transition-all duration-500 sm:bottom-8",
+          landed ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
+        )}
+      >
+        {landed && flight.landId && !panel && (
+          <button
+            type="button"
+            onClick={() => flight.landId && universeStore.openPanel(flight.landId)}
+            className={cn(
+              "pointer-events-auto universe-glass inline-flex min-h-11 items-center gap-2 px-5 text-sm font-semibold text-cyan-100",
+              caps
+            )}
+          >
+            {u.info}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => universeStore.takeOff()}
+          className={cn(
+            "pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-5 text-sm font-semibold text-orange-300 shadow-[0_0_26px_rgba(251,146,60,0.35)] transition hover:bg-orange-500/20",
+            caps
+          )}
+        >
+          <Rocket size={16} aria-hidden />
+          {u.takeOff}
+        </button>
       </div>
 
       {/* arrival card */}
       <div
         className={cn(
           "absolute inset-x-0 top-20 flex justify-center px-4 transition-all duration-300 sm:top-24",
-          arrived && !panel ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+          arrived && !panel && !away ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
         )}
         aria-live="polite"
       >
-        {arrived && !panel && (
+        {arrived && !panel && !away && (
           <div className="universe-glass pointer-events-auto flex items-center gap-4 px-5 py-3">
             <div>
               <p className={cn("text-[10px] text-cyan-200", caps)}>{u.arrived}</p>
@@ -287,7 +321,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => universeStore.openPanel(arrived)}
+              onClick={() => universeStore.land(arrived)}
               className={cn(
                 "inline-flex min-h-10 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20",
                 caps
@@ -301,7 +335,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </div>
 
       {/* progress rail */}
-      <ol className="pointer-events-auto absolute start-3 top-1/2 hidden -translate-y-1/2 flex-col gap-3 sm:flex">
+      <ol className={cn("pointer-events-auto absolute start-3 top-1/2 hidden -translate-y-1/2 flex-col gap-3 sm:flex", away && "sm:hidden")}>
         {[null, ...DESTINATIONS].map((d, i) => {
           const at = d ? stationU(d.id) : 0;
           const here = Math.abs(flight.shipU - at) < 0.05;
