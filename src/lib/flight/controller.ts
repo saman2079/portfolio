@@ -70,17 +70,6 @@ export function flyToStation(id: DestinationId) {
   flyToU(stationU(id));
 }
 
-/** Leave the flight and jump straight to a classic 2D section. */
-export function openSection(sectionId: string) {
-  const el = document.getElementById(sectionId);
-  if (!el) return;
-  cancel();
-  const root = document.documentElement;
-  root.style.scrollBehavior = "auto";
-  window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY);
-  root.style.scrollBehavior = "";
-}
-
 /** After the user stops scrolling close to a planet, dock with it. */
 function magnet() {
   if (!flightLive.enabled || anim !== null) return;

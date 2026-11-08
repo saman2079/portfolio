@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { ArrowUpRight, Download, ExternalLink, Github, Send, X } from "lucide-react";
+import { Download, ExternalLink, Github, Send, X } from "lucide-react";
 import { resumeFor, type Locale } from "@/i18n/config";
 import { siteConfig } from "@/i18n/site";
 import { universeText } from "@/i18n/universe";
@@ -256,19 +256,7 @@ export function SectionPanel({ lang, content }: { lang: Locale; content: Univers
   else if (id === "skills") body = <Skills c={content.skills} />;
   else if (id === "projects") body = <Projects c={content.projects} ui={content.ui} />;
   else if (id === "contact") body = <Contact c={content.contact} ui={content.ui} lang={lang} />;
-  else if (id === "lab")
-    body = (
-      <div className="space-y-4">
-        <p className="text-sm leading-7 text-paper-300">{content.lab.description}</p>
-        <button
-          type="button"
-          onClick={() => universeStore.openClassic("lab")}
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20"
-        >
-          {u.openLab} <ArrowUpRight size={15} aria-hidden className="rtl:-scale-x-100" />
-        </button>
-      </div>
-    );
+  else if (id === "lab") body = <p className="text-sm leading-7 text-paper-300">{content.lab.description}</p>;
 
   return (
     <aside
@@ -307,17 +295,6 @@ export function SectionPanel({ lang, content }: { lang: Locale; content: Univers
           <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
             {body}
           </div>
-          {id !== "lab" && (
-            <footer className="border-t border-white/10 px-5 py-3">
-              <button
-                type="button"
-                onClick={() => universeStore.openClassic(id)}
-                className="inline-flex items-center gap-1.5 text-xs text-paper-300 transition hover:text-cyan-200"
-              >
-                {u.openClassic} <ArrowUpRight size={13} aria-hidden className="rtl:-scale-x-100" />
-              </button>
-            </footer>
-          )}
         </>
       )}
     </aside>

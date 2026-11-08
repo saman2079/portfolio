@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
-import { DESTINATIONS, type DestinationId } from "@/lib/universe/destinations";
-import { flyToStation, openSection } from "@/lib/flight/controller";
-import { resetLanding, startLanding, startTakeoff } from "@/lib/store/flightStore";
+import type { DestinationId } from "@/lib/universe/destinations";
+import { flyToStation } from "@/lib/flight/controller";
+import { startLanding, startTakeoff } from "@/lib/store/flightStore";
 
 export interface UniverseState {
   /** destination currently hovered (in 3D or in the HUD list) */
@@ -43,13 +43,6 @@ export const universeStore = {
   cancelPending: () => set({ pending: null }),
   openPanel: (id: DestinationId) => set({ panel: id, pending: null }),
   closePanel: () => set({ panel: null, pending: null }),
-  /** Leave the universe and jump to the classic 2D section of a destination. */
-  openClassic(id: DestinationId) {
-    const section = DESTINATIONS.find((d) => d.id === id)?.section ?? id;
-    set({ panel: null, pending: null });
-    resetLanding();
-    openSection(section);
-  },
 };
 
 const server: UniverseState = { hovered: null, panel: null, pending: null };

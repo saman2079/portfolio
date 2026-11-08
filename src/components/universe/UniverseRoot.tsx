@@ -7,7 +7,7 @@ import { useWorld, worldStore } from "@/lib/store/worldStore";
 import { useSceneState } from "@/lib/store/sceneStore";
 import { flightLive, useFlightPick } from "@/lib/store/flightStore";
 import { attachFlight } from "@/lib/flight/controller";
-import { useSectionTracking } from "@/components/world/useSectionTracking";
+import { useSectionTracking } from "./useSectionTracking";
 import { setLitePreference } from "@/lib/three/preference";
 import { universeText } from "@/i18n/universe";
 import { DESTINATION_IDS } from "@/lib/universe/destinations";

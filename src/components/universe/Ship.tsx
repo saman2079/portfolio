@@ -215,11 +215,6 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
         }
       } else if (cmd.type === "takeoff" && L.state === "landed") {
         setLand("ascending");
-      } else if (cmd.type === "reset" && L.state !== "idle") {
-        L.flash = 0;
-        setLand("idle");
-        g.position.copy(work.pos);
-        g.quaternion.copy(work.q);
       }
     }
 

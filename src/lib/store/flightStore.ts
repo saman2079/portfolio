@@ -40,7 +40,7 @@ export const flightLive = {
   /** the pilot is dragging the throttle lever (so a drag must not turn the head) */
   grabbing: false,
   /** a landing command waiting for the ship (handled in its frame loop) */
-  landCmd: null as null | { type: "land" | "takeoff" | "reset"; id?: DestinationId },
+  landCmd: null as null | { type: "land" | "takeoff"; id?: DestinationId },
   /** the surface world replaces space (landed, or lifting off) */
   surface: false,
   /** the outside (chase camera) view is wanted */
@@ -130,11 +130,6 @@ export const startLanding = (id: DestinationId) => {
 export const startTakeoff = () => {
   if (flightStore.get().land === "landed") flightLive.landCmd = { type: "takeoff" };
 };
-/** Drop any landing state at once (used when leaving to the classic page). */
-export const resetLanding = () => {
-  if (flightStore.get().land !== "idle") flightLive.landCmd = { type: "reset" };
-};
-
 /** Subscribe to one primitive of the HUD snapshot, so callers do not re-render ten times a second. */
 export function useFlightPick<T extends string | number | boolean | null>(pick: (h: FlightHud) => T): T {
   return useSyncExternalStore(

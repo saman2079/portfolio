@@ -19,8 +19,6 @@ export interface UniverseText {
   lite: string;
   back3d: string;
   close: string;
-  openClassic: string;
-  openLab: string;
   email: string;
   telegram: string;
   github: string;
@@ -54,8 +52,6 @@ export const universeText: Record<Locale, UniverseText> = {
     lite: "نسخه ساده",
     back3d: "بازگشت به جهان سه‌بعدی",
     close: "بستن",
-    openClassic: "نمایش در صفحه کامل",
-    openLab: "ورود به آزمایشگاه",
     email: "ایمیل",
     telegram: "تلگرام",
     github: "گیت‌هاب",
@@ -94,8 +90,6 @@ export const universeText: Record<Locale, UniverseText> = {
     lite: "Lite version",
     back3d: "Back to the 3D universe",
     close: "Close",
-    openClassic: "Open in the full page",
-    openLab: "Enter the lab",
     email: "Email",
     telegram: "Telegram",
     github: "GitHub",
