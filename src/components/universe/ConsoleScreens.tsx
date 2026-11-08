@@ -16,6 +16,7 @@ import {
 import data from "@/lib/universe/consoleScreens.json";
 import { en } from "@/i18n/en";
 import { fa } from "@/i18n/fa";
+import { holo } from "@/lib/store/holoStore";
 
 /**
  * Screens of "Large Wall-Mounted Computer Console" by Inditrion Dradnon (CC BY 4.0,
@@ -25,7 +26,7 @@ import { fa } from "@/i18n/fa";
  */
 
 /** Where the console sits in ship space (the pilot's eye is the origin, forward is -Z). Tunable with ?con=x,y,z,scale,tiltX */
-const DEFAULT = { x: 0, y: -0.8, z: -1.5, s: 0.1, rx: 0 };
+const DEFAULT = { x: 0, y: -0.24, z: -1.75, s: 0.09, rx: 0 };
 
 function readOverride() {
   const out = { ...DEFAULT };
@@ -183,7 +184,15 @@ export function ConsoleScreens() {
 
   return (
     <group ref={root} position={[placed.x, placed.y, placed.z]} rotation={[placed.rx, 0, 0]} scale={placed.s}>
-      <mesh geometry={stuff.mainGeo} material={stuff.mainMat} />
+      <mesh
+        geometry={stuff.mainGeo}
+        material={stuff.mainMat}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.delta > 6) return;
+          holo.open = !holo.open;
+        }}
+      />
       <mesh geometry={stuff.auxGeo} material={stuff.auxMat} />
     </group>
   );

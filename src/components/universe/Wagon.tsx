@@ -18,6 +18,7 @@ import {
 } from "three";
 import { flightLive } from "@/lib/store/flightStore";
 import { ConsoleScreens } from "./ConsoleScreens";
+import { Hologram } from "./Hologram";
 
 export const MODEL_URL = "/models/warp-wagon.glb";
 /** Scale of the model, and where the pilot's eyes are in model space (the nose compartment). */
@@ -90,6 +91,14 @@ export function Wagon({ onLoaded }: { onLoaded?: () => void }) {
       const isGlass = c !== null && lum > 0.6 && c[2] - c[0] > 0.1 && Math.min(c[0], c[1], c[2]) > 0.55;
       // the panel on the right of the nose compartment cut the view to the right: hide it
       const geoPos = mesh.geometry.getAttribute("position");
+      if (geoPos && geoPos.count === 948) {
+        // the right-hand canopy glass: removed so nothing stands between the pilot and the right view
+        const box = new Box3().setFromObject(mesh);
+        if (box.min.x > -0.1 && box.max.x < 1.1 && box.min.y > 1.8 && box.min.z < -4) {
+          mesh.visible = false;
+          return;
+        }
+      }
       if (geoPos && geoPos.count === 252) {
         const box = new Box3().setFromObject(mesh);
         if (box.min.x > -0.1 && box.max.x < 0.9 && box.min.y > 1.95 && box.max.y < 2.75 && box.min.z < -3.8 && box.max.z > -1.3) {
@@ -135,6 +144,7 @@ export function Wagon({ onLoaded }: { onLoaded?: () => void }) {
         <pointLight position={[0, 2.5, 0.8]} color="#ffd9b0" intensity={4} distance={5} />
       </group>
       <ConsoleScreens />
+      <Hologram ready />
       {[-1, 1].map((side) => (
         <mesh
           key={side}

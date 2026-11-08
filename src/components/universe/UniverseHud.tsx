@@ -9,7 +9,7 @@ import { setLitePreference } from "@/lib/three/preference";
 import { worldStore } from "@/lib/store/worldStore";
 import { useBase } from "@/lib/lab/baseStore";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
-import { setOutside, setSpeedMul, speedToT, stationU, tToSpeed, useFlight } from "@/lib/store/flightStore";
+import { setOutside, stationU, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -19,34 +19,11 @@ interface Props {
   tagline: string;
 }
 
-function SpeedSlider({ label, value }: { label: string; value: number }) {
-  return (
-    <label className="flex items-center gap-3 text-[11px] text-paper-300">
-      <span className="shrink-0">{label}</span>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={1}
-        dir="ltr"
-        value={Math.round(speedToT(value) * 100)}
-        onChange={(e) => setSpeedMul(tToSpeed(Number(e.target.value) / 100))}
-        aria-valuetext={`${value.toFixed(1)}x`}
-        className="h-1 w-full min-w-24 cursor-pointer accent-cyan-300"
-      />
-      <span dir="ltr" className="w-9 shrink-0 text-end font-mono text-cyan-200">
-        {value.toFixed(1)}x
-      </span>
-    </label>
-  );
-}
-
-
 /** DOM overlay on top of the canvas: brand, hero text, destinations and cockpit read-outs. */
 export function UniverseHud({ lang, name, role, tagline }: Props) {
   const u = universeText[lang];
   const other: Locale = lang === "fa" ? "en" : "fa";
-  const { hovered, panel } = useUniverse();
+  const { panel } = useUniverse();
   const flight = useFlight();
   const [full, setFull] = useState(false);
   const [canFull, setCanFull] = useState(false);
@@ -74,7 +51,6 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
   const started = flight.shipU > 0.035;
   const nearPlace = landed && flight.landId ? u.places[flight.landId].title : flight.nearId ? u.places[flight.nearId].title : null;
   const arrived = flight.arrivedId;
-  const focus = DESTINATIONS.find((d) => d.id === (hovered ?? "projects")) ?? DESTINATIONS[0];
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 text-paper-100">
@@ -129,12 +105,10 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
           started && "opacity-0 [&_*]:!pointer-events-none"
         )}
       >
-        <h1 className="text-balance font-display text-3xl font-bold leading-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.8)] sm:text-5xl">
-          {name}
+        <h1 className="sr-only">
+          {name} — {role}. {tagline}
         </h1>
-        <p className="mt-2 text-lg text-paper-100 sm:text-2xl">{role}</p>
-        <p className="mt-3 max-w-md text-sm leading-7 text-paper-300">{tagline}</p>
-        <div className="pointer-events-auto mt-5 flex flex-wrap gap-3">
+        <div className="pointer-events-auto flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => universeStore.goTo("about")}
@@ -171,76 +145,6 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         </div>
       </div>
 
-      {/* destinations (desktop) */}
-      <div
-        className={cn(
-          "absolute bottom-[15%] end-[3%] hidden items-end gap-3 transition-opacity duration-300 md:flex",
-          (panel || away) && "pointer-events-none opacity-0"
-        )}
-      >
-        <div className="pointer-events-auto universe-glass w-52 p-3">
-          <p className={cn("mb-2 px-1 text-[11px] text-cyan-200", caps)}>{u.destinations}</p>
-          <ul>
-            {DESTINATIONS.map((d) => (
-              <li key={d.id}>
-                <button
-                  type="button"
-                  onClick={() => universeStore.goTo(d.id)}
-                  onMouseEnter={() => universeStore.hover(d.id)}
-                  onMouseLeave={() => universeStore.hover(null)}
-                  onFocus={() => universeStore.hover(d.id)}
-                  onBlur={() => universeStore.hover(null)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-start text-sm transition",
-                    hovered === d.id ? "bg-orange-400/10 text-white" : "text-paper-300 hover:text-white"
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "h-3.5 w-3.5 shrink-0 rounded-full border",
-                      hovered === d.id
-                        ? "border-orange-400 bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.9)]"
-                        : "border-paper-500"
-                    )}
-                  />
-                  {u.places[d.id].title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="universe-glass hidden w-48 overflow-hidden lg:block">
-          <div
-            aria-hidden
-            className="h-28 transition-all duration-500"
-            style={{
-              background: focus
-                ? `radial-gradient(circle at 34% 30%, ${focus.colors[2]} 0%, ${focus.colors[1]} 38%, ${focus.colors[0]} 72%, #02040a 100%)`
-                : undefined,
-            }}
-          />
-          <div className="p-3">
-            <p className="text-sm font-bold text-white">{focus ? u.places[focus.id].title : ""}</p>
-            <p className="mt-0.5 text-xs text-paper-300">{focus ? u.places[focus.id].sub : ""}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* destinations (mobile) */}
-      <div className={cn("pointer-events-auto absolute inset-x-0 bottom-[17%] flex gap-2 overflow-x-auto px-4 pb-1 md:hidden", (panel || away) && "hidden")}>
-        {DESTINATIONS.map((d) => (
-          <button
-            key={d.id}
-            type="button"
-            onClick={() => universeStore.goTo(d.id)}
-            className="universe-glass shrink-0 px-3.5 py-2 text-xs text-paper-100"
-          >
-            {u.places[d.id].title}
-          </button>
-        ))}
-      </div>
-
       {/* cockpit read-outs */}
       <div className="absolute bottom-[4%] start-[3%] hidden gap-6 md:flex">
         <div className="universe-glass px-4 py-2">
@@ -253,26 +157,6 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
             {flight.nextDist === null ? "∞" : `${flight.nextDist} AU`}
           </p>
         </div>
-        <div className="universe-glass min-w-44 px-4 py-2">
-          <p className={cn("text-[10px] text-cyan-200", caps)}>{u.speed}</p>
-          <p className="text-sm font-semibold text-white" dir="ltr">
-            {Math.round(flight.speedNorm * 100)}%
-          </p>
-          <div aria-hidden className="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.9)] transition-[width] duration-150"
-              style={{ width: `${Math.round(flight.speedNorm * 100)}%` }}
-            />
-          </div>
-          <div className="pointer-events-auto mt-2 w-44">
-            <SpeedSlider label={u.flightSpeed} value={flight.speedMul} />
-          </div>
-        </div>
-      </div>
-
-      {/* throttle (mobile; on desktop it sits in the read-out and on the console lever) */}
-      <div className={cn("universe-glass pointer-events-auto absolute inset-x-4 bottom-[9%] px-4 py-2 md:hidden", (panel || away) && "hidden")}>
-        <SpeedSlider label={u.flightSpeed} value={flight.speedMul} />
       </div>
 
       {/* on the surface: take off / reopen the info card */}
