@@ -47,6 +47,7 @@ export function UniverseScene({ tier, labels }: { tier: "high" | "low"; labels: 
     <>
       <color attach="background" args={["#02040a"]} />
       <ambientLight intensity={0.06} />
+      <hemisphereLight args={["#8fb0ff", "#1c1420", 0.45]} />
       <directionalLight position={SUN_POSITION} intensity={2.4} color="#ffe2c4" />
 
       <Sky tier={tier} />

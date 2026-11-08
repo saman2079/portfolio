@@ -37,6 +37,10 @@ export const flightLive = {
   flying: false,
   /** the pilot is dragging the throttle lever (so a drag must not turn the head) */
   grabbing: false,
+  /** the outside (chase camera) view is wanted */
+  outside: false,
+  /** 0 = in the cockpit, 1 = outside, eased by the ship */
+  view: 0,
   /** velocity in ship space, used by the speed streaks */
   vLocal: [0, 0, 0] as [number, number, number],
 };
@@ -51,6 +55,7 @@ export interface FlightHud {
   nextDist: number | null;
   arrivedId: DestinationId | null;
   speedMul: number;
+  outside: boolean;
 }
 
 const initial: FlightHud = {
@@ -62,6 +67,7 @@ const initial: FlightHud = {
   nextDist: null,
   arrivedId: null,
   speedMul: 1,
+  outside: false,
 };
 
 let hud: FlightHud = initial;
@@ -75,7 +81,15 @@ const same = (a: FlightHud, b: FlightHud) =>
   a.nextId === b.nextId &&
   a.nextDist === b.nextDist &&
   a.arrivedId === b.arrivedId &&
-  a.speedMul === b.speedMul;
+  a.speedMul === b.speedMul &&
+  a.outside === b.outside;
+
+let flightStoreRef: { get: () => FlightHud; publish: (n: FlightHud) => void } | null = null;
+/** Switch between the cockpit and the outside camera (the HUD updates at once). */
+export const setOutside = (outside: boolean) => {
+  flightLive.outside = outside;
+  if (flightStoreRef) flightStoreRef.publish({ ...flightStoreRef.get(), outside });
+};
 
 export const flightStore = {
   get: (): FlightHud => hud,
@@ -91,6 +105,8 @@ export const flightStore = {
     listeners.forEach((listener) => listener());
   },
 };
+
+flightStoreRef = flightStore;
 
 export const useFlight = (): FlightHud =>
   useSyncExternalStore(flightStore.subscribe, flightStore.get, () => initial);

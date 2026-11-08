@@ -13,6 +13,8 @@ export interface UniverseText {
   deepSpace: string;
   distance: string;
   speed: string;
+  outsideView: string;
+  cockpitView: string;
   flightSpeed: string;
   lookHint: string;
   arrived: string;
@@ -35,6 +37,8 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "فضای عمیق",
     distance: "فاصله",
     speed: "سرعت",
+    outsideView: "نمای بیرون",
+    cockpitView: "نمای کابین",
     flightSpeed: "سرعت پرواز",
     lookHint: "بکش تا داخل کابین را ببینی",
     arrived: "رسیدی به",
@@ -62,6 +66,8 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "Deep space",
     distance: "Distance",
     speed: "Speed",
+    outsideView: "Outside view",
+    cockpitView: "Cockpit view",
     flightSpeed: "Flight speed",
     lookHint: "Drag to look around the cabin",
     arrived: "Arrived at",

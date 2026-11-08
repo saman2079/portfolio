@@ -4,19 +4,23 @@ import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import { useEffect } from "react";
-import { MathUtils, Matrix4, Quaternion, Vector3, type Group, type PerspectiveCamera as ThreeCamera } from "three";
+import { Euler, MathUtils, Matrix4, Quaternion, Vector3, type Group, type PerspectiveCamera as ThreeCamera } from "three";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { SEGMENTS, flightLive, flightStore } from "@/lib/store/flightStore";
 import { buildFlightPath } from "./flightPath";
 import { Cockpit } from "./Cockpit";
 import { SpeedStreaks } from "./SpeedStreaks";
 import { Lever } from "./Lever";
+import { ExteriorShip } from "./ExteriorShip";
 
 /** how far the pilot can turn the head, in radians */
 const MAX_YAW = 0.85;
 const MAX_PITCH = 0.3;
 
 const UP = new Vector3(0, 1, 0);
+/** the point the outside camera orbits: just ahead of the pilot, in the middle of the hull */
+const HULL_CENTER = new Vector3(0, -0.3, -3);
+const ORBIT_RADIUS = 11.5;
 /** world units per second that counts as "full speed" for effects */
 const MAX_SPEED = 60;
 
@@ -29,6 +33,9 @@ const MAX_SPEED = 60;
 export function Ship({ quality }: { quality: "high" | "low" }) {
   const ship = useRef<Group>(null);
   const head = useRef<Group>(null);
+  const cockpit = useRef<Group>(null);
+  const exterior = useRef<Group>(null);
+  const hs = useRef({ x: 0, y: 0 });
   const camera = useRef<ThreeCamera>(null);
   const publishAt = useRef(0);
   const started = useRef(false);
@@ -89,6 +96,10 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
       target: new Vector3(),
       vel: new Vector3(),
       m: new Matrix4(),
+      eye: new Vector3(),
+      qOut: new Quaternion(),
+      qIn: new Quaternion(),
+      euler: new Euler(0, 0, 0, "YXZ"),
       q: new Quaternion(),
       qIdentity: new Quaternion(),
       inv: new Quaternion(),
@@ -171,9 +182,38 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
       const ease = 1 - Math.exp(-dt * 7);
       const wantY = L.yaw - state.pointer.x * 0.03 + Math.sin(t * 31) * shake;
       const wantX = L.pitch + state.pointer.y * 0.02 + Math.sin(t * 27 + 1) * shake;
-      h.rotation.y += (wantY - h.rotation.y) * ease;
-      h.rotation.x += (wantX - h.rotation.x) * ease;
-      h.rotation.z = Math.sin(t * 0.4) * 0.004 + Math.sin(t * 37) * shake;
+      hs.current.y += (wantY - hs.current.y) * ease;
+      hs.current.x += (wantX - hs.current.x) * ease;
+      const roll = Math.sin(t * 0.4) * 0.004 + Math.sin(t * 37) * shake;
+
+      // cockpit <-> outside: ease the blend, then fly the camera out around the hull
+      live.view += ((live.outside ? 1 : 0) - live.view) * (1 - Math.exp(-dt * 3.2));
+      if (Math.abs(live.view - (live.outside ? 1 : 0)) < 0.001) live.view = live.outside ? 1 : 0;
+      const s = MathUtils.smootherstep(live.view, 0, 1);
+
+      // in the cockpit: head turn. outside: the same drag orbits the camera around the ship
+      work.euler.set(hs.current.x, hs.current.y, roll);
+      work.qIn.setFromEuler(work.euler);
+      if (s > 0) {
+        const az = hs.current.y * 2;
+        const el = 0.22 + hs.current.x;
+        work.eye.set(
+          HULL_CENTER.x + ORBIT_RADIUS * Math.cos(el) * Math.sin(az),
+          HULL_CENTER.y + ORBIT_RADIUS * Math.sin(el),
+          HULL_CENTER.z + ORBIT_RADIUS * Math.cos(el) * Math.cos(az)
+        );
+        work.m.lookAt(work.eye, HULL_CENTER, UP);
+        work.qOut.setFromRotationMatrix(work.m);
+        h.position.set(0, 0, 0).lerp(work.eye, s);
+        h.quaternion.copy(work.qIn).slerp(work.qOut, s);
+      } else {
+        h.position.set(0, 0, 0);
+        h.quaternion.copy(work.qIn);
+      }
+      // swap interiors: the cockpit (and its lights, kept in the scene) shrinks away, the hull appears
+      const inside = s < 0.2;
+      if (cockpit.current) cockpit.current.scale.setScalar(inside ? 1 : 0.0001);
+      if (exterior.current) exterior.current.visible = s > 0.12;
     }
 
     /* 5. field of view widens with speed */
@@ -220,8 +260,11 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
 
   return (
     <group ref={ship} name="ship">
-      <Cockpit />
-      <Lever />
+      <group ref={cockpit}>
+        <Cockpit />
+        <Lever />
+      </group>
+      <ExteriorShip groupRef={exterior} />
       <SpeedStreaks count={quality === "high" ? 500 : 220} />
       <group ref={head}>
         <PerspectiveCamera ref={camera} makeDefault fov={58} near={0.05} far={2500} />

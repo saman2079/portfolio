@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Download, Languages, Maximize2, Minimize2, Mouse } from "lucide-react";
+import { ArrowUpRight, Download, Eye, Languages, Maximize2, Minimize2, Mouse, Rocket } from "lucide-react";
 import { pathFor, resumeFor, type Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
-import { setSpeedMul, speedToT, stationU, tToSpeed, useFlight } from "@/lib/store/flightStore";
+import { setOutside, setSpeedMul, speedToT, stationU, tToSpeed, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -124,6 +124,17 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
           >
             {u.explore}
             <ArrowUpRight size={16} aria-hidden className="rtl:-scale-x-100" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setOutside(!flight.outside)}
+            className={cn(
+              "inline-flex min-h-11 items-center gap-2 rounded-lg border border-cyan-300/50 bg-cyan-400/10 px-5 text-sm font-semibold text-cyan-200 backdrop-blur transition hover:bg-cyan-400/20",
+              caps
+            )}
+          >
+            {flight.outside ? u.cockpitView : u.outsideView}
+            {flight.outside ? <Eye size={16} aria-hidden /> : <Rocket size={16} aria-hidden />}
           </button>
           <a
             href={resumeFor(lang)}
@@ -300,6 +311,21 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         <span className={cn("text-[10px]", caps)}>{u.scroll}</span>
         <span className={cn("hidden text-[10px] text-paper-500 sm:block", caps)}>{u.lookHint}</span>
       </div>
+
+      {/* view toggle (stays available after the hero text has faded) */}
+      <button
+        type="button"
+        onClick={() => setOutside(!flight.outside)}
+        aria-pressed={flight.outside}
+        aria-label={flight.outside ? u.cockpitView : u.outsideView}
+        title={flight.outside ? u.cockpitView : u.outsideView}
+        className={cn(
+          "pointer-events-auto absolute bottom-3 end-16 grid h-10 w-10 place-items-center rounded-full border bg-black/30 text-paper-100 backdrop-blur transition hover:border-cyan-300/60",
+          flight.outside ? "border-cyan-300/70 text-cyan-200" : "border-white/20"
+        )}
+      >
+        {flight.outside ? <Eye size={16} aria-hidden /> : <Rocket size={16} aria-hidden />}
+      </button>
 
       {/* fullscreen */}
       <button
