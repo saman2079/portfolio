@@ -88,7 +88,21 @@ export default function RootLayout({
         <div aria-hidden className="os-backdrop pointer-events-none fixed inset-0" />
 
         {/* 3D universe: loads lazily, only on capable devices; the 2D page is the fallback */}
-        <UniverseRoot lang={lang} name={t.name} role={t.role} tagline={t.tagline} />
+        <UniverseRoot
+          lang={lang}
+          name={t.name}
+          role={t.role}
+          tagline={t.tagline}
+          content={{
+            about: t.about,
+            lab: { title: t.lab.title, description: t.lab.description },
+            experience: t.experience,
+            skills: t.skills,
+            projects: t.projects,
+            contact: t.contact,
+            ui: { liveDemo: t.ui.liveDemo, source: t.ui.source, downloadResume: t.ui.downloadResume },
+          }}
+        />
 
         <StatusBar lang={lang} t={t} />
         <main id="main" tabIndex={-1} className="relative outline-none">

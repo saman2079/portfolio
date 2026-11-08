@@ -43,7 +43,7 @@ function SpeedSlider({ label, value }: { label: string; value: number }) {
 export function UniverseHud({ lang, name, role, tagline }: Props) {
   const u = universeText[lang];
   const other: Locale = lang === "fa" ? "en" : "fa";
-  const { hovered } = useUniverse();
+  const { hovered, panel } = useUniverse();
   const flight = useFlight();
   const [full, setFull] = useState(false);
 
@@ -151,7 +151,12 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </div>
 
       {/* destinations (desktop) */}
-      <div className="absolute bottom-[15%] end-[3%] hidden items-end gap-3 md:flex">
+      <div
+        className={cn(
+          "absolute bottom-[15%] end-[3%] hidden items-end gap-3 transition-opacity duration-300 md:flex",
+          panel && "pointer-events-none opacity-0"
+        )}
+      >
         <div className="pointer-events-auto universe-glass w-52 p-3">
           <p className={cn("mb-2 px-1 text-[11px] text-cyan-200", caps)}>{u.destinations}</p>
           <ul>
@@ -202,7 +207,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </div>
 
       {/* destinations (mobile) */}
-      <div className="pointer-events-auto absolute inset-x-0 bottom-[17%] flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
+      <div className={cn("pointer-events-auto absolute inset-x-0 bottom-[17%] flex gap-2 overflow-x-auto px-4 pb-1 md:hidden", panel && "hidden")}>
         {DESTINATIONS.map((d) => (
           <button
             key={d.id}
@@ -245,7 +250,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </div>
 
       {/* throttle (mobile; on desktop it sits in the read-out and on the console lever) */}
-      <div className="universe-glass pointer-events-auto absolute inset-x-4 bottom-[9%] px-4 py-2 md:hidden">
+      <div className={cn("universe-glass pointer-events-auto absolute inset-x-4 bottom-[9%] px-4 py-2 md:hidden", panel && "hidden")}>
         <SpeedSlider label={u.flightSpeed} value={flight.speedMul} />
       </div>
 
@@ -253,11 +258,11 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       <div
         className={cn(
           "absolute inset-x-0 top-20 flex justify-center px-4 transition-all duration-300 sm:top-24",
-          arrived ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+          arrived && !panel ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
         )}
         aria-live="polite"
       >
-        {arrived && (
+        {arrived && !panel && (
           <div className="universe-glass pointer-events-auto flex items-center gap-4 px-5 py-3">
             <div>
               <p className={cn("text-[10px] text-cyan-200", caps)}>{u.arrived}</p>
@@ -265,7 +270,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => universeStore.openSection(arrived)}
+              onClick={() => universeStore.openPanel(arrived)}
               className={cn(
                 "inline-flex min-h-10 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20",
                 caps

@@ -13,6 +13,7 @@ import { DESTINATION_IDS } from "@/lib/universe/destinations";
 import type { Locale } from "@/i18n/config";
 import type { UniverseLabels } from "./UniverseScene";
 import { UniverseHud } from "./UniverseHud";
+import { SectionPanel, type UniverseContent } from "./SectionPanel";
 
 const UniverseCanvas = dynamic(() => import("./UniverseCanvas"), { ssr: false });
 
@@ -40,9 +41,10 @@ interface Props {
   name: string;
   role: string;
   tagline: string;
+  content: UniverseContent;
 }
 
-export function UniverseRoot({ lang, name, role, tagline }: Props) {
+export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
   const world = useWorld();
   const scene = useSceneState();
   const [ready, setReady] = useState(false);
@@ -103,6 +105,7 @@ export function UniverseRoot({ lang, name, role, tagline }: Props) {
         </Boundary>
       </div>
       <UniverseHud lang={lang} name={name} role={role} tagline={tagline} />
+      <SectionPanel lang={lang} content={content} />
     </div>
   );
 }

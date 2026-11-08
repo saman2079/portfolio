@@ -13,6 +13,12 @@ export interface UniverseText {
   deepSpace: string;
   distance: string;
   speed: string;
+  close: string;
+  openClassic: string;
+  openLab: string;
+  email: string;
+  telegram: string;
+  github: string;
   outsideView: string;
   cockpitView: string;
   flightSpeed: string;
@@ -37,6 +43,12 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "فضای عمیق",
     distance: "فاصله",
     speed: "سرعت",
+    close: "بستن",
+    openClassic: "نمایش در صفحه کامل",
+    openLab: "ورود به آزمایشگاه",
+    email: "ایمیل",
+    telegram: "تلگرام",
+    github: "گیت‌هاب",
     outsideView: "نمای بیرون",
     cockpitView: "نمای کابین",
     flightSpeed: "سرعت پرواز",
@@ -66,6 +78,12 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "Deep space",
     distance: "Distance",
     speed: "Speed",
+    close: "Close",
+    openClassic: "Open in the full page",
+    openLab: "Enter the lab",
+    email: "Email",
+    telegram: "Telegram",
+    github: "GitHub",
     outsideView: "Outside view",
     cockpitView: "Cockpit view",
     flightSpeed: "Flight speed",
