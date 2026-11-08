@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { DESTINATIONS, type DestinationId } from "@/lib/universe/destinations";
+import { flyToStation, openSection } from "@/lib/flight/controller";
 
 export interface UniverseState {
   /** destination currently hovered (in 3D or in the HUD list) */
@@ -25,10 +26,12 @@ export const universeStore = {
     };
   },
   hover: (hovered: DestinationId | null) => set({ hovered }),
-  /** Phase 1: jump to the matching section. Phase 2 replaces this with a ship flight. */
-  goTo(id: DestinationId) {
+  /** Fly the ship to a destination (animates the scroll position). */
+  goTo: (id: DestinationId) => flyToStation(id),
+  /** Phase 2: the destination's content is still the 2D section; phase 5 opens it in the universe. */
+  openSection(id: DestinationId) {
     const section = DESTINATIONS.find((d) => d.id === id)?.section ?? id;
-    document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    openSection(section);
   },
 };
 

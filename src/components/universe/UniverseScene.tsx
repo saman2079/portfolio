@@ -61,9 +61,9 @@ export function UniverseScene({ tier, labels }: { tier: "high" | "low"; labels: 
           segments={tier === "high" ? 64 : 40}
         />
       ))}
-      <Asteroids count={tier === "high" ? 80 : 36} />
+      <Asteroids count={tier === "high" ? 150 : 64} />
       <Station />
-      <Ship />
+      <Ship quality={tier} />
       <Effects tier={tier} />
       <PerformanceGuard />
     </>

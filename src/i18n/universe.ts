@@ -12,6 +12,9 @@ export interface UniverseText {
   location: string;
   deepSpace: string;
   distance: string;
+  speed: string;
+  arrived: string;
+  enter: string;
   fullscreen: string;
   exitFullscreen: string;
   places: Record<DestinationId, { title: string; sub: string }>;
@@ -29,6 +32,9 @@ export const universeText: Record<Locale, UniverseText> = {
     location: "موقعیت",
     deepSpace: "فضای عمیق",
     distance: "فاصله",
+    speed: "سرعت",
+    arrived: "رسیدی به",
+    enter: "ورود",
     fullscreen: "تمام‌صفحه",
     exitFullscreen: "خروج از تمام‌صفحه",
     places: {
@@ -51,6 +57,9 @@ export const universeText: Record<Locale, UniverseText> = {
     location: "Location",
     deepSpace: "Deep space",
     distance: "Distance",
+    speed: "Speed",
+    arrived: "Arrived at",
+    enter: "Enter",
     fullscreen: "Fullscreen",
     exitFullscreen: "Exit fullscreen",
     places: {

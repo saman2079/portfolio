@@ -75,3 +75,13 @@ html[lang="fa"] .universe-label small {
   text-transform: none;
   font-family: var(--font-body), system-ui, sans-serif;
 }
+
+/* The hero is the flight runway: 6 segments x 110svh of travel plus one screen.
+   Scroll position = ship position (see lib/flight/controller.ts). */
+html[data-world="active"] #top {
+  min-height: 760svh;
+}
+
+.universe-rail-dot {
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}

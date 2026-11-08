@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { IcosahedronGeometry, Object3D, type InstancedMesh } from "three";
+import { IcosahedronGeometry, Object3D, Vector3, type InstancedMesh } from "three";
+import { DESTINATIONS, HORIZON_PLANET } from "@/lib/universe/destinations";
 import { mulberry32 } from "@/lib/universe/random";
+import { buildFlightPath } from "./flightPath";
 
 function rockGeometry() {
   const geo = new IcosahedronGeometry(1, 2);
@@ -23,21 +25,35 @@ function rockGeometry() {
   return geo;
 }
 
+/** Rocks scattered along the whole route, kept clear of the flight path and of every planet. */
 export function Asteroids({ count }: { count: number }) {
   const mesh = useRef<InstancedMesh>(null);
   const dummy = useMemo(() => new Object3D(), []);
 
   const { geometry, items } = useMemo(() => {
     const rand = mulberry32(77);
+    const { curve } = buildFlightPath();
+    const route = Array.from({ length: 260 }, (_, i) => curve.getPoint(i / 259));
+    const bodies = [...DESTINATIONS, HORIZON_PLANET].map((d) => ({ p: new Vector3(...d.position), r: d.radius }));
+    const spot = new Vector3();
+
+    const blocked = () =>
+      spot.length() < 9 ||
+      route.some((p) => p.distanceToSquared(spot) < 100) ||
+      bodies.some((b) => b.p.distanceTo(spot) < b.r * 1.8 + 6);
+
     const list = Array.from({ length: count }, () => {
       let x = 0;
       let y = 0;
       let z = 0;
+      let tries = 0;
       do {
-        x = (rand() - 0.5) * 130;
-        y = (rand() - 0.5) * 50;
-        z = -6 - rand() * 130;
-      } while (Math.hypot(x, y, z) < 9); // keep clear of the cockpit
+        x = (rand() - 0.5) * 150;
+        y = (rand() - 0.5) * 55;
+        z = -6 - rand() * 300;
+        spot.set(x, y, z);
+        tries++;
+      } while (blocked() && tries < 40);
       return {
         x,
         y,

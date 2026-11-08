@@ -6,6 +6,7 @@ import { pathFor, resumeFor, type Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
+import { stationU, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -20,6 +21,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
   const u = universeText[lang];
   const other: Locale = lang === "fa" ? "en" : "fa";
   const { hovered } = useUniverse();
+  const flight = useFlight();
   const [full, setFull] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,9 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
 
   // letter-spacing and upper-casing only suit Latin text; they would break Persian joins
   const caps = lang === "en" ? "uppercase tracking-[0.16em]" : "";
+  const started = flight.shipU > 0.035;
+  const nearPlace = flight.nearId ? u.places[flight.nearId].title : null;
+  const arrived = flight.arrivedId;
   const focus = DESTINATIONS.find((d) => d.id === (hovered ?? "projects")) ?? DESTINATIONS[0];
 
   return (
@@ -74,7 +79,12 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </header>
 
       {/* hero text */}
-      <div className="absolute inset-x-0 top-24 px-5 sm:top-auto sm:bottom-[31%] sm:inset-x-auto sm:start-[7%] sm:max-w-[30rem] sm:px-0">
+      <div
+        className={cn(
+          "absolute inset-x-0 top-24 px-5 transition-opacity duration-500 sm:top-auto sm:bottom-[31%] sm:inset-x-auto sm:start-[7%] sm:max-w-[30rem] sm:px-0",
+          started && "opacity-0 [&_*]:!pointer-events-none"
+        )}
+      >
         <h1 className="text-balance font-display text-3xl font-bold leading-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.8)] sm:text-5xl">
           {name}
         </h1>
@@ -175,16 +185,86 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       <div className="absolute bottom-[4%] start-[3%] hidden gap-6 md:flex">
         <div className="universe-glass px-4 py-2">
           <p className={cn("text-[10px] text-cyan-200", caps)}>{u.location}</p>
-          <p className="text-sm font-semibold text-white">{u.deepSpace}</p>
+          <p className="text-sm font-semibold text-white">{nearPlace ?? u.deepSpace}</p>
         </div>
         <div className="universe-glass px-4 py-2">
           <p className={cn("text-[10px] text-cyan-200", caps)}>{u.distance}</p>
-          <p className="text-sm font-semibold text-white">∞</p>
+          <p className="text-sm font-semibold text-white" dir="ltr">
+            {flight.nextDist === null ? "∞" : `${flight.nextDist} AU`}
+          </p>
+        </div>
+        <div className="universe-glass min-w-32 px-4 py-2">
+          <p className={cn("text-[10px] text-cyan-200", caps)}>{u.speed}</p>
+          <p className="text-sm font-semibold text-white" dir="ltr">
+            {Math.round(flight.speedNorm * 100)}%
+          </p>
+          <div aria-hidden className="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.9)] transition-[width] duration-150"
+              style={{ width: `${Math.round(flight.speedNorm * 100)}%` }}
+            />
+          </div>
         </div>
       </div>
 
+      {/* arrival card */}
+      <div
+        className={cn(
+          "absolute inset-x-0 top-20 flex justify-center px-4 transition-all duration-300 sm:top-24",
+          arrived ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+        )}
+        aria-live="polite"
+      >
+        {arrived && (
+          <div className="universe-glass pointer-events-auto flex items-center gap-4 px-5 py-3">
+            <div>
+              <p className={cn("text-[10px] text-cyan-200", caps)}>{u.arrived}</p>
+              <p className="text-base font-bold text-white">{u.places[arrived].title}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => universeStore.openSection(arrived)}
+              className={cn(
+                "inline-flex min-h-10 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20",
+                caps
+              )}
+            >
+              {u.enter}
+              <ArrowUpRight size={15} aria-hidden className="rtl:-scale-x-100" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* progress rail */}
+      <ol className="pointer-events-auto absolute start-3 top-1/2 hidden -translate-y-1/2 flex-col gap-3 sm:flex">
+        {[null, ...DESTINATIONS].map((d, i) => {
+          const at = d ? stationU(d.id) : 0;
+          const here = Math.abs(flight.shipU - at) < 0.05;
+          return (
+            <li key={d ? d.id : "start"}>
+              <button
+                type="button"
+                aria-label={d ? u.places[d.id].title : u.explore}
+                title={d ? u.places[d.id].title : ""}
+                onClick={() => (d ? universeStore.goTo(d.id) : window.scrollTo({ top: 0, behavior: "smooth" }))}
+                className={cn(
+                  "universe-rail-dot block h-2.5 w-2.5 rounded-full border",
+                  here
+                    ? "scale-150 border-orange-400 bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.9)]"
+                    : flight.shipU > at
+                      ? "border-cyan-300 bg-cyan-300/60"
+                      : "border-paper-500 bg-transparent"
+                )}
+                data-i={i}
+              />
+            </li>
+          );
+        })}
+      </ol>
+
       {/* scroll hint */}
-      <div className="absolute inset-x-0 bottom-3 flex flex-col items-center gap-1 text-paper-300">
+      <div className={cn("absolute inset-x-0 bottom-3 flex flex-col items-center gap-1 text-paper-300 transition-opacity duration-500", started && "opacity-0")}>
         <Mouse size={22} aria-hidden className="text-cyan-200" />
         <span className={cn("text-[10px]", caps)}>{u.scroll}</span>
       </div>

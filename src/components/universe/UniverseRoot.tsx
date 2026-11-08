@@ -5,6 +5,8 @@ import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { detectCapability } from "@/lib/three/capability";
 import { useWorld, worldStore } from "@/lib/store/worldStore";
 import { useSceneState } from "@/lib/store/sceneStore";
+import { flightLive } from "@/lib/store/flightStore";
+import { attachFlight } from "@/lib/flight/controller";
 import { useSectionTracking } from "@/components/world/useSectionTracking";
 import { universeText } from "@/i18n/universe";
 import { DESTINATION_IDS } from "@/lib/universe/destinations";
@@ -58,12 +60,25 @@ export function UniverseRoot({ lang, name, role, tagline }: Props) {
 
   useSectionTracking(world.status === "active");
 
+  // scroll position drives the ship while the 3D world is active
+  useEffect(() => {
+    if (world.status !== "active") return;
+    return attachFlight();
+  }, [world.status]);
+
   const labels = useMemo(() => {
     const places = universeText[lang].places;
     return Object.fromEntries(DESTINATION_IDS.map((id) => [id, places[id]])) as UniverseLabels;
   }, [lang]);
 
   const on = world.status === "active" && ready && scene.section === "top";
+
+  useEffect(() => {
+    flightLive.enabled = on;
+    return () => {
+      flightLive.enabled = false;
+    };
+  }, [on]);
 
   // CSS hooks: hide the legacy hero and the 2D chrome only while the universe is on screen
   useEffect(() => {
