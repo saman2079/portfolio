@@ -1,14 +1,20 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
+import { useEffect } from "react";
 import { MathUtils, Matrix4, Quaternion, Vector3, type Group, type PerspectiveCamera as ThreeCamera } from "three";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { SEGMENTS, flightLive, flightStore } from "@/lib/store/flightStore";
 import { buildFlightPath } from "./flightPath";
 import { Cockpit } from "./Cockpit";
 import { SpeedStreaks } from "./SpeedStreaks";
+import { Lever } from "./Lever";
+
+/** how far the pilot can turn the head, in radians */
+const MAX_YAW = 0.85;
+const MAX_PITCH = 0.3;
 
 const UP = new Vector3(0, 1, 0);
 /** world units per second that counts as "full speed" for effects */
@@ -26,6 +32,51 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
   const camera = useRef<ThreeCamera>(null);
   const publishAt = useRef(0);
   const started = useRef(false);
+
+  const gl = useThree((s) => s.gl);
+  const look = useRef({ yaw: 0, pitch: 0, drag: false, sx: 0, sy: 0, syaw: 0, spitch: 0, idle: 0, touch: false });
+
+  /* drag left/right (and a little up/down with a mouse) to turn the pilot's head */
+  useEffect(() => {
+    const el = gl.domElement;
+    const L = look.current;
+    const down = (e: PointerEvent) => {
+      if (e.button > 0) return;
+      L.drag = true;
+      L.touch = e.pointerType === "touch";
+      L.sx = e.clientX;
+      L.sy = e.clientY;
+      L.syaw = L.yaw;
+      L.spitch = L.pitch;
+    };
+    const move = (e: PointerEvent) => {
+      if (!L.drag) return;
+      if (flightLive.grabbing) {
+        L.drag = false;
+        return;
+      }
+      const w = Math.max(320, el.clientWidth);
+      L.yaw = MathUtils.clamp(L.syaw + ((e.clientX - L.sx) / w) * 2.2, -MAX_YAW, MAX_YAW);
+      if (!L.touch) L.pitch = MathUtils.clamp(L.spitch + ((e.clientY - L.sy) / w) * 1.2, -MAX_PITCH, MAX_PITCH);
+      L.idle = 0;
+      el.style.cursor = "grabbing";
+    };
+    const up = () => {
+      L.drag = false;
+      el.style.cursor = "";
+    };
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      el.style.cursor = "";
+    };
+  }, [gl]);
 
   const path = useMemo(() => buildFlightPath(), []);
   const work = useMemo(
@@ -107,9 +158,21 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
     const shake = live.speedNorm * live.speedNorm * 0.006;
     const h = head.current;
     if (h) {
-      const ease = 1 - Math.exp(-dt * 3);
-      h.rotation.y += (-state.pointer.x * 0.1 + Math.sin(t * 31) * shake - h.rotation.y) * ease;
-      h.rotation.x += (state.pointer.y * 0.05 + Math.sin(t * 27 + 1) * shake - h.rotation.x) * ease;
+      const L = look.current;
+      // after a while without dragging the head slowly returns to the front
+      if (!L.drag) {
+        L.idle += dt;
+        if (L.idle > 2.5) {
+          const back = 1 - Math.exp(-dt * 1.2);
+          L.yaw -= L.yaw * back;
+          L.pitch -= L.pitch * back;
+        }
+      }
+      const ease = 1 - Math.exp(-dt * 7);
+      const wantY = L.yaw - state.pointer.x * 0.03 + Math.sin(t * 31) * shake;
+      const wantX = L.pitch + state.pointer.y * 0.02 + Math.sin(t * 27 + 1) * shake;
+      h.rotation.y += (wantY - h.rotation.y) * ease;
+      h.rotation.x += (wantX - h.rotation.x) * ease;
       h.rotation.z = Math.sin(t * 0.4) * 0.004 + Math.sin(t * 37) * shake;
     }
 
@@ -150,6 +213,7 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
         nextId: next ? next.id : null,
         nextDist: next && nextPlanet ? Math.max(0, Math.round(work.pos.distanceTo(nextPlanet) - next.radius)) : null,
         arrivedId,
+        speedMul: Math.round(live.speedMul * 100) / 100,
       });
     }
   });
@@ -157,6 +221,7 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
   return (
     <group ref={ship} name="ship">
       <Cockpit />
+      <Lever />
       <SpeedStreaks count={quality === "high" ? 500 : 220} />
       <group ref={head}>
         <PerspectiveCamera ref={camera} makeDefault fov={58} near={0.05} far={2500} />

@@ -6,7 +6,7 @@ import { pathFor, resumeFor, type Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
-import { stationU, useFlight } from "@/lib/store/flightStore";
+import { setSpeedMul, speedToT, stationU, tToSpeed, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -15,6 +15,29 @@ interface Props {
   role: string;
   tagline: string;
 }
+
+function SpeedSlider({ label, value }: { label: string; value: number }) {
+  return (
+    <label className="flex items-center gap-3 text-[11px] text-paper-300">
+      <span className="shrink-0">{label}</span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        dir="ltr"
+        value={Math.round(speedToT(value) * 100)}
+        onChange={(e) => setSpeedMul(tToSpeed(Number(e.target.value) / 100))}
+        aria-valuetext={`${value.toFixed(1)}x`}
+        className="h-1 w-full min-w-24 cursor-pointer accent-cyan-300"
+      />
+      <span dir="ltr" className="w-9 shrink-0 text-end font-mono text-cyan-200">
+        {value.toFixed(1)}x
+      </span>
+    </label>
+  );
+}
+
 
 /** DOM overlay on top of the canvas: brand, hero text, destinations and cockpit read-outs. */
 export function UniverseHud({ lang, name, role, tagline }: Props) {
@@ -193,7 +216,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
             {flight.nextDist === null ? "∞" : `${flight.nextDist} AU`}
           </p>
         </div>
-        <div className="universe-glass min-w-32 px-4 py-2">
+        <div className="universe-glass min-w-44 px-4 py-2">
           <p className={cn("text-[10px] text-cyan-200", caps)}>{u.speed}</p>
           <p className="text-sm font-semibold text-white" dir="ltr">
             {Math.round(flight.speedNorm * 100)}%
@@ -204,7 +227,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
               style={{ width: `${Math.round(flight.speedNorm * 100)}%` }}
             />
           </div>
+          <div className="pointer-events-auto mt-2 w-44">
+            <SpeedSlider label={u.flightSpeed} value={flight.speedMul} />
+          </div>
         </div>
+      </div>
+
+      {/* throttle (mobile; on desktop it sits in the read-out and on the console lever) */}
+      <div className="universe-glass pointer-events-auto absolute inset-x-4 bottom-[9%] px-4 py-2 md:hidden">
+        <SpeedSlider label={u.flightSpeed} value={flight.speedMul} />
       </div>
 
       {/* arrival card */}
@@ -267,6 +298,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       <div className={cn("absolute inset-x-0 bottom-3 flex flex-col items-center gap-1 text-paper-300 transition-opacity duration-500", started && "opacity-0")}>
         <Mouse size={22} aria-hidden className="text-cyan-200" />
         <span className={cn("text-[10px]", caps)}>{u.scroll}</span>
+        <span className={cn("hidden text-[10px] text-paper-500 sm:block", caps)}>{u.lookHint}</span>
       </div>
 
       {/* fullscreen */}

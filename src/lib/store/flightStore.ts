@@ -4,6 +4,15 @@ import { DESTINATION_IDS, type DestinationId } from "@/lib/universe/destinations
 /** The flight path has one segment per destination (start → first planet → … → last planet). */
 export const SEGMENTS = DESTINATION_IDS.length;
 
+/** Cockpit throttle lever range (multiplier on flight speed), log-scaled so the middle is 1x. */
+export const SPEED_MIN = 0.4;
+export const SPEED_MAX = 2.5;
+export const speedToT = (m: number) => Math.log(m / SPEED_MIN) / Math.log(SPEED_MAX / SPEED_MIN);
+export const tToSpeed = (t: number) => SPEED_MIN * Math.pow(SPEED_MAX / SPEED_MIN, Math.min(1, Math.max(0, t)));
+export const setSpeedMul = (m: number) => {
+  flightLive.speedMul = Math.min(SPEED_MAX, Math.max(SPEED_MIN, m));
+};
+
 /** Position of a destination along the path, 0..1 (the start is 0). */
 export const stationU = (id: DestinationId) => (DESTINATION_IDS.indexOf(id) + 1) / SEGMENTS;
 
@@ -26,6 +35,8 @@ export const flightLive = {
   speedMul: 1,
   /** a programmatic flight (planet click) is running */
   flying: false,
+  /** the pilot is dragging the throttle lever (so a drag must not turn the head) */
+  grabbing: false,
   /** velocity in ship space, used by the speed streaks */
   vLocal: [0, 0, 0] as [number, number, number],
 };
@@ -39,6 +50,7 @@ export interface FlightHud {
   nextId: DestinationId | null;
   nextDist: number | null;
   arrivedId: DestinationId | null;
+  speedMul: number;
 }
 
 const initial: FlightHud = {
@@ -49,6 +61,7 @@ const initial: FlightHud = {
   nextId: "about",
   nextDist: null,
   arrivedId: null,
+  speedMul: 1,
 };
 
 let hud: FlightHud = initial;
@@ -61,7 +74,8 @@ const same = (a: FlightHud, b: FlightHud) =>
   a.nearId === b.nearId &&
   a.nextId === b.nextId &&
   a.nextDist === b.nextDist &&
-  a.arrivedId === b.arrivedId;
+  a.arrivedId === b.arrivedId &&
+  a.speedMul === b.speedMul;
 
 export const flightStore = {
   get: (): FlightHud => hud,

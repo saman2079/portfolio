@@ -119,6 +119,8 @@ export function Planet({ cfg, label, sublabel, interactive = true, sunlit = fals
   };
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    // a drag (looking around the cabin) must not count as a click
+    if (e.delta > 6) return;
     universeStore.goTo(cfg.id);
   };
 
