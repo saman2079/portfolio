@@ -5,6 +5,8 @@ import { ArrowUpRight, Download, Eye, Languages, Maximize2, Minimize2, Mouse, Ro
 import { pathFor, resumeFor, type Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { DESTINATIONS } from "@/lib/universe/destinations";
+import { setLitePreference } from "@/lib/three/preference";
+import { worldStore } from "@/lib/store/worldStore";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
 import { setOutside, setSpeedMul, speedToT, stationU, tToSpeed, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,11 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
   const { hovered, panel } = useUniverse();
   const flight = useFlight();
   const [full, setFull] = useState(false);
+  const [canFull, setCanFull] = useState(false);
+
+  useEffect(() => {
+    setCanFull(typeof document.documentElement.requestFullscreen === "function");
+  }, []);
 
   useEffect(() => {
     const sync = () => setFull(Boolean(document.fullscreenElement));
@@ -68,7 +75,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
   return (
     <div className="pointer-events-none absolute inset-0 z-10 text-paper-100">
       {/* top bar */}
-      <header className="pointer-events-auto absolute inset-x-0 top-0 flex items-start justify-between gap-3 px-4 pt-4 sm:px-8 sm:pt-6">
+      <header className="pointer-events-auto absolute inset-x-0 top-0 flex items-start justify-between gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-8 sm:pt-6">
         <a href="#top" dir="ltr" className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-300/40 bg-cyan-400/10 font-mono text-lg font-bold text-cyan-200 shadow-[0_0_24px_rgba(56,189,248,0.3)]">
             S
@@ -88,6 +95,16 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
           <a href={resumeFor(lang)} download className="pb-1 text-paper-100 transition hover:text-cyan-200">
             {u.navResume}
           </a>
+          <button
+            type="button"
+            onClick={() => {
+              setLitePreference(true);
+              worldStore.fail("forced-off");
+            }}
+            className="hidden pb-1 text-paper-300 transition hover:text-cyan-200 sm:inline"
+          >
+            {u.lite}
+          </button>
           <a
             href={pathFor(other)}
             hrefLang={other}
@@ -311,7 +328,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </ol>
 
       {/* scroll hint */}
-      <div className={cn("absolute inset-x-0 bottom-3 flex flex-col items-center gap-1 text-paper-300 transition-opacity duration-500", started && "opacity-0")}>
+      <div className={cn("absolute inset-x-0 bottom-3 hidden flex-col items-center gap-1 text-paper-300 transition-opacity duration-500 sm:flex", started && "opacity-0")}>
         <Mouse size={22} aria-hidden className="text-cyan-200" />
         <span className={cn("text-[10px]", caps)}>{u.scroll}</span>
         <span className={cn("hidden text-[10px] text-paper-500 sm:block", caps)}>{u.lookHint}</span>
@@ -333,7 +350,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       </button>
 
       {/* fullscreen */}
-      <button
+      {canFull && <button
         type="button"
         onClick={toggleFull}
         aria-label={full ? u.exitFullscreen : u.fullscreen}
@@ -341,7 +358,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         className="pointer-events-auto absolute bottom-3 end-3 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/30 text-paper-100 backdrop-blur transition hover:border-cyan-300/60"
       >
         {full ? <Minimize2 size={16} aria-hidden /> : <Maximize2 size={16} aria-hidden />}
-      </button>
+      </button>}
     </div>
   );
 }

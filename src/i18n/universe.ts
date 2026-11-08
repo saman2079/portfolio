@@ -13,6 +13,8 @@ export interface UniverseText {
   deepSpace: string;
   distance: string;
   speed: string;
+  lite: string;
+  back3d: string;
   close: string;
   openClassic: string;
   openLab: string;
@@ -43,6 +45,8 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "فضای عمیق",
     distance: "فاصله",
     speed: "سرعت",
+    lite: "نسخه ساده",
+    back3d: "بازگشت به جهان سه‌بعدی",
     close: "بستن",
     openClassic: "نمایش در صفحه کامل",
     openLab: "ورود به آزمایشگاه",
@@ -78,6 +82,8 @@ export const universeText: Record<Locale, UniverseText> = {
     deepSpace: "Deep space",
     distance: "Distance",
     speed: "Speed",
+    lite: "Lite version",
+    back3d: "Back to the 3D universe",
     close: "Close",
     openClassic: "Open in the full page",
     openLab: "Enter the lab",

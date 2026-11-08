@@ -1,3 +1,5 @@
+import { prefersLite } from "./preference";
+
 export type WorldTier = "high" | "low" | "none";
 
 export type WorldReason =
@@ -53,6 +55,7 @@ function hasWebGL2(): boolean {
 export function detectCapability(): WorldCapability {
   const forced = new URLSearchParams(window.location.search).get("world");
   if (forced === "off") return { tier: "none", reason: "forced-off" };
+  if (forced !== "on" && forced !== "low" && prefersLite()) return { tier: "none", reason: "forced-off" };
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return { tier: "none", reason: "reduced-motion" };

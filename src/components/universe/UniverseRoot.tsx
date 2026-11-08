@@ -8,6 +8,7 @@ import { useSceneState } from "@/lib/store/sceneStore";
 import { flightLive } from "@/lib/store/flightStore";
 import { attachFlight } from "@/lib/flight/controller";
 import { useSectionTracking } from "@/components/world/useSectionTracking";
+import { setLitePreference } from "@/lib/three/preference";
 import { universeText } from "@/i18n/universe";
 import { DESTINATION_IDS } from "@/lib/universe/destinations";
 import type { Locale } from "@/i18n/config";
@@ -89,6 +90,25 @@ export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
       delete document.documentElement.dataset.universe;
     };
   }, [on]);
+
+  // the visitor chose the plain page: leave a way back to the universe
+  if (world.status === "fallback" && world.reason === "forced-off") {
+    const back = () => {
+      setLitePreference(false);
+      const url = new URL(window.location.href);
+      url.searchParams.set("world", "on");
+      window.location.replace(url.toString());
+    };
+    return (
+      <button
+        type="button"
+        onClick={back}
+        className="fixed bottom-3 start-3 z-50 rounded-full border border-cyan-300/40 bg-black/60 px-4 py-2 text-xs text-cyan-100 backdrop-blur transition hover:border-cyan-300"
+      >
+        {universeText[lang].back3d}
+      </button>
+    );
+  }
 
   if (world.status !== "active") return null;
 
