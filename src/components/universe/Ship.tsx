@@ -376,6 +376,7 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
         nextDist: next && nextPlanet ? Math.max(0, Math.round(work.pos.distanceTo(nextPlanet) - next.radius)) : null,
         arrivedId,
         speedMul: Math.round(live.speedMul * 100) / 100,
+        outside: live.outside,
         land: L.state,
         landId: L.state === "idle" ? null : L.id,
       });

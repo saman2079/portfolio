@@ -204,13 +204,14 @@ export function Hologram() {
       const flick = e < 1 ? 0.75 + Math.sin(state.clock.elapsedTime * 50) * 0.25 : 1;
       lift.current.scale.setScalar(Math.max(0.001, e) * flick);
     }
-    if (beam.current) beam.current.opacity = 0.18 * e;
+    // the light beam only shows while the planets are rising or folding away, never over the open hologram
+    if (beam.current) beam.current.opacity = 0.3 * Math.sin(Math.PI * e);
   });
 
   return (
     <group ref={root} position={BUTTON} rotation={[0, Math.PI, 0]} visible={false}>
       {/* light beam from the button to the planets */}
-      <mesh position={[0, RISE / 2, 0]}>
+      <mesh position={[0, RISE / 2, 0]} renderOrder={-1}>
         <cylinderGeometry args={[0.1, 0.03, RISE, 24, 1, true]} />
         <meshBasicMaterial ref={beam} color={new Color(0.3, 1.1, 1.8)} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} side={DoubleSide} toneMapped={false} />
       </mesh>
