@@ -8,12 +8,14 @@ export interface TerrainParams {
   freq: number;
   seed: number;
   ridge: number;
+  /** radius of the flat landing area */
+  flat: number;
 }
 
 /** Each planet gets its own relief, derived from its seed. */
-export function paramsFor(seed: number): TerrainParams {
+export function paramsFor(seed: number, id?: string): TerrainParams {
   const k = Math.floor(seed * 10);
-  return { amp: 7 + (k % 5) * 2.2, freq: 0.01 + (k % 4) * 0.0035, seed: k, ridge: (((k * 7) % 10) / 10) * 0.8 };
+  return { amp: 7 + (k % 5) * 2.2, freq: 0.01 + (k % 4) * 0.0035, seed: k, ridge: (((k * 7) % 10) / 10) * 0.8, flat: id === "lab" ? 44 : 16 };
 }
 
 /* CPU value noise (integer hash, deterministic) so spires can stand exactly on the terrain. */
@@ -54,7 +56,7 @@ const smooth = (a: number, b: number, x: number) => {
 /** Ground height at (x, z); flat around the landing pad, rising towards the horizon. */
 export function heightAt(x: number, z: number, p: TerrainParams) {
   const r = Math.hypot(x, z);
-  const far = smooth(16, 70, r);
+  const far = smooth(p.flat, p.flat + 54, r);
   if (far === 0) return 0;
   const n = fbm2(x * p.freq, z * p.freq, p.seed);
   const rg = 1 - Math.abs(2 * fbm2(x * p.freq * 0.7 + 13, z * p.freq * 0.7 + 13, p.seed * 2 + 1) - 1);

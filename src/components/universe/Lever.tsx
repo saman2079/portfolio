@@ -36,7 +36,7 @@ export function Lever() {
   };
 
   const onDown = (e: ThreeEvent<PointerEvent>) => {
-    if (flightLive.outside) return;
+    if (flightLive.outside || flightLive.build) return;
     e.stopPropagation();
     (e.target as unknown as Element).setPointerCapture?.(e.pointerId);
     flightLive.grabbing = true;

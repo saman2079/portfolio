@@ -7,6 +7,7 @@ import { universeText } from "@/i18n/universe";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { setLitePreference } from "@/lib/three/preference";
 import { worldStore } from "@/lib/store/worldStore";
+import { useBase } from "@/lib/lab/baseStore";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
 import { setOutside, setSpeedMul, speedToT, stationU, tToSpeed, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
   const caps = lang === "en" ? "uppercase tracking-[0.16em]" : "";
   const away = flight.land !== "idle";
   const landed = flight.land === "landed";
+  const building = useBase((b) => b.mode);
   const started = flight.shipU > 0.035;
   const nearPlace = landed && flight.landId ? u.places[flight.landId].title : flight.nearId ? u.places[flight.nearId].title : null;
   const arrived = flight.arrivedId;
@@ -277,7 +279,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       <div
         className={cn(
           "absolute inset-x-0 bottom-16 flex justify-center gap-3 px-4 transition-all duration-500 sm:bottom-8",
-          landed ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
+          landed && !building ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"
         )}
       >
         {landed && flight.landId && !panel && (

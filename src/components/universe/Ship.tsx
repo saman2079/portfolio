@@ -9,6 +9,7 @@ import { DESTINATIONS } from "@/lib/universe/destinations";
 import { SEGMENTS, flightLive, flightStore, type LandState } from "@/lib/store/flightStore";
 import type { DestinationId } from "@/lib/universe/destinations";
 import { EYE } from "./surface/terrain";
+import { baseStore } from "@/lib/lab/baseStore";
 import { buildFlightPath } from "./flightPath";
 import { Cockpit } from "./Cockpit";
 import { SpeedStreaks } from "./SpeedStreaks";
@@ -23,6 +24,8 @@ const UP = new Vector3(0, 1, 0);
 /** the point the outside camera orbits: just ahead of the pilot, in the middle of the hull */
 const HULL_CENTER = new Vector3(0, -0.3, -3);
 const ORBIT_RADIUS = 11.5;
+/** centre of the Lab build grid, in ship space while landed (ground is EYE below the pilot) */
+const GRID_CENTER = new Vector3(0, -EYE, -24);
 /** world units per second that counts as "full speed" for effects */
 const MAX_SPEED = 60;
 
@@ -73,6 +76,7 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
     const el = gl.domElement;
     const L = look.current;
     const down = (e: PointerEvent) => {
+      if (flightLive.build) return;
       if (e.button > 0) return;
       L.drag = true;
       L.touch = e.pointerType === "touch";
@@ -122,6 +126,8 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
       vel: new Vector3(),
       m: new Matrix4(),
       eye: new Vector3(),
+      buildEye: new Vector3(),
+      qBuild: new Quaternion(),
       qOut: new Quaternion(),
       qIn: new Quaternion(),
       euler: new Euler(0, 0, 0, "YXZ"),
@@ -196,6 +202,7 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
       L.t = 0;
       live.surface = state === "landed" || state === "ascending";
       document.documentElement.style.overflow = state === "idle" ? "" : "hidden";
+      if (state !== "landed" && baseStore.get().mode) baseStore.setMode(false);
       flightStore.publish({ ...flightStore.get(), land: state, landId: state === "idle" ? null : L.id });
     };
     const cmd = live.landCmd;
@@ -213,7 +220,7 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
           document.documentElement.style.setProperty("--land-color", cfg.atmosphere);
           setLand("descending");
         }
-      } else if (cmd.type === "takeoff" && L.state === "landed") {
+      } else if (cmd.type === "takeoff" && L.state === "landed" && !live.build) {
         setLand("ascending");
       }
     }
@@ -320,10 +327,23 @@ export function Ship({ quality }: { quality: "high" | "low" }) {
         h.position.set(0, 0, 0);
         h.quaternion.copy(work.qIn);
       }
+      // base builder: fly up above the Lab build grid and look straight down at it
+      live.buildView += ((live.build ? 1 : 0) - live.buildView) * (1 - Math.exp(-dt * 2.6));
+      if (Math.abs(live.buildView - (live.build ? 1 : 0)) < 0.001) live.buildView = live.build ? 1 : 0;
+      const bv = MathUtils.smootherstep(live.buildView, 0, 1);
+      if (bv > 0) {
+        const k = state.size.width / state.size.height < 0.8 ? 1.55 : 1;
+        work.buildEye.set(GRID_CENTER.x, GRID_CENTER.y + 23.5 * k, GRID_CENTER.z + 21 * k);
+        work.m.lookAt(work.buildEye, GRID_CENTER, UP);
+        work.qBuild.setFromRotationMatrix(work.m);
+        h.position.lerp(work.buildEye, bv);
+        h.quaternion.slerp(work.qBuild, bv);
+      }
+
       // swap interiors: the cockpit (and its lights, kept in the scene) shrinks away, the hull appears
-      const inside = s < 0.2;
+      const inside = s < 0.2 && bv < 0.2;
       if (cockpit.current) cockpit.current.scale.setScalar(inside ? 1 : 0.0001);
-      if (exterior.current) exterior.current.visible = s > 0.12;
+      if (exterior.current) exterior.current.visible = s > 0.12 || bv > 0.1;
     }
 
     /* 5. field of view widens with speed */

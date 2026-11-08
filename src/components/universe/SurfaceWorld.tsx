@@ -22,6 +22,7 @@ import {
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { mulberry32 } from "@/lib/universe/random";
 import { flightLive, flightStore } from "@/lib/store/flightStore";
+import { BaseBuilder } from "./lab/BaseBuilder";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, terrainFragment, terrainVertex } from "./surface/shaders";
 
@@ -54,7 +55,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
   const camPos = useMemo(() => new Vector3(), []);
 
   const world = useMemo(() => {
-    const params = paramsFor(cfg.seed);
+    const params = paramsFor(cfg.seed, cfg.id);
+    const keepClear = cfg.id === "lab" ? 52 : 0;
     const geometry = buildTerrain(params, SIZE, tier === "high" ? 200 : 120);
 
     const colorA = new Color(cfg.colors[0]);
@@ -97,7 +99,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const crystalCount = tier === "high" ? 120 : 56;
     const spires = Array.from({ length: spireCount }, () => {
       const a = rand() * Math.PI * 2;
-      const r = 50 + rand() * 330;
+      const r = Math.max(50, keepClear + 6) + rand() * 330;
       const x = Math.cos(a) * r;
       const z = Math.sin(a) * r;
       const w = 5 + rand() * 14 * (0.4 + r / 330);
@@ -105,7 +107,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     });
     const crystals = Array.from({ length: crystalCount }, () => {
       const a = rand() * Math.PI * 2;
-      const r = 20 + Math.pow(rand(), 1.6) * 300;
+      const r = Math.max(20, keepClear) + Math.pow(rand(), 1.6) * 300;
       const x = Math.cos(a) * r;
       const z = Math.sin(a) * r;
       const w = 0.5 + rand() * 1.6 * (0.5 + r / 200);
@@ -254,6 +256,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
           blending={AdditiveBlending}
         />
       </points>
+
+      {cfg.id === "lab" && <BaseBuilder />}
 
       {/* landing pad under the hull */}
       <group position={[0, 0.04, -3]} rotation={[-Math.PI / 2, 0, 0]}>

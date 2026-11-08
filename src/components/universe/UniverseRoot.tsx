@@ -15,6 +15,8 @@ import type { Locale } from "@/i18n/config";
 import type { UniverseLabels } from "./UniverseScene";
 import { UniverseHud } from "./UniverseHud";
 import { SectionPanel, type UniverseContent } from "./SectionPanel";
+import { BuilderUi } from "./lab/BuilderUi";
+import { baseStore } from "@/lib/lab/baseStore";
 
 const UniverseCanvas = dynamic(() => import("./UniverseCanvas"), { ssr: false });
 
@@ -84,6 +86,11 @@ export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
     };
   }, [on]);
 
+  // the skills become the buildings of the Lab base
+  useEffect(() => {
+    baseStore.setSkills(content.skills.groups.flatMap((g) => g.items.map((i) => ({ name: i.name, level: i.level }))));
+  }, [content]);
+
   // hide the 3D planet labels while standing on a surface
   useEffect(() => {
     document.documentElement.dataset.surface = land === "landed" ? "on" : "off";
@@ -135,6 +142,7 @@ export function UniverseRoot({ lang, name, role, tagline, content }: Props) {
       </div>
       <UniverseHud lang={lang} name={name} role={role} tagline={tagline} />
       <SectionPanel lang={lang} content={content} />
+      <BuilderUi lang={lang} />
       <div aria-hidden className="universe-flash" />
     </div>
   );

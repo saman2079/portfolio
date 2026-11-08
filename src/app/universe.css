@@ -98,3 +98,8 @@ html[data-world="active"] #top {
 html[data-surface="on"] .universe-label {
   display: none;
 }
+
+/* While building, touch drags on the canvas move buildings instead of scrolling. */
+html[data-builder="on"] .universe-canvas canvas {
+  touch-action: none;
+}

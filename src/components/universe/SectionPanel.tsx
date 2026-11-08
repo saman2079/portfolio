@@ -9,6 +9,7 @@ import type { Dictionary } from "@/i18n/types";
 import { DESTINATIONS, type DestinationId } from "@/lib/universe/destinations";
 import { stationU, useFlight } from "@/lib/store/flightStore";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
+import { baseStore } from "@/lib/lab/baseStore";
 import { cn } from "@/lib/utils";
 
 /** The slice of the site dictionary the in-universe panels show (all real content, nothing extra). */
@@ -256,7 +257,22 @@ export function SectionPanel({ lang, content }: { lang: Locale; content: Univers
   else if (id === "skills") body = <Skills c={content.skills} />;
   else if (id === "projects") body = <Projects c={content.projects} ui={content.ui} />;
   else if (id === "contact") body = <Contact c={content.contact} ui={content.ui} lang={lang} />;
-  else if (id === "lab") body = <p className="text-sm leading-7 text-paper-300">{content.lab.description}</p>;
+  else if (id === "lab")
+    body = (
+      <div className="space-y-4">
+        <p className="text-sm leading-7 text-paper-300">{u.labIntro}</p>
+        <button
+          type="button"
+          onClick={() => {
+            universeStore.closePanel();
+            baseStore.setMode(true);
+          }}
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-orange-400/80 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20"
+        >
+          {u.builder.start}
+        </button>
+      </div>
+    );
 
   return (
     <aside

@@ -41,6 +41,10 @@ export const flightLive = {
   grabbing: false,
   /** a landing command waiting for the ship (handled in its frame loop) */
   landCmd: null as null | { type: "land" | "takeoff"; id?: DestinationId },
+  /** the base builder is open: the camera hovers above the build grid */
+  build: false,
+  /** 0..1 blend of the builder camera */
+  buildView: 0,
   /** the surface world replaces space (landed, or lifting off) */
   surface: false,
   /** the outside (chase camera) view is wanted */
