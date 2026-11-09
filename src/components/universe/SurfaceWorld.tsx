@@ -260,7 +260,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       {cfg.id === "lab" && <BaseBuilder />}
 
       {/* landing pad under the hull */}
-      <group position={[0, 0.04, -1]} rotation={[-Math.PI / 2, 0, 0]} scale={0.5}>
+      <group position={[0, 0.04, 12.5]} rotation={[-Math.PI / 2, 0, 0]} scale={2.5}>
         <mesh>
           <ringGeometry args={[8.2, 8.7, 72]} />
           <meshBasicMaterial color={new Color(3.2, 1.3, 0.25)} toneMapped={false} />

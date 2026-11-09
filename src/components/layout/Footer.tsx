@@ -32,6 +32,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Sci-fi Spaceship Cockpit 02" by NotARealStudio — CC BY 4.0
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/space-vector-exploration-interior-redesign-0630b4fcda0845679432568b449a0490"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Space Vector Exploration, Interior Redesign" by ReiSakisaka — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

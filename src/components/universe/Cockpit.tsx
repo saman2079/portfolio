@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useGLTF } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
+import { flightLive } from "@/lib/store/flightStore";
 import {
   Color,
   DoubleSide,
   Mesh,
   MeshPhysicalMaterial,
   PMREMGenerator,
+  type Group,
   type Material,
   type Texture,
 } from "three";
@@ -23,14 +25,11 @@ export const MODEL_URL = "/models/cockpit.glb";
  */
 export const MODEL_SCALE = 2.2;
 export const MODEL_EYE: [number, number, number] = [0, 1.5, -0.05];
-/** Vertical distance from the pilot's eye down to the underside of the hull, in ship space. */
-export const EYE_TO_HULL_BOTTOM = (MODEL_EYE[1] - 0.35) * MODEL_SCALE;
-/** Middle of the hull relative to the pilot's eye, in ship space (for the outside camera). */
-export const HULL_CENTER: [number, number, number] = [
-  0,
-  (1.1 - MODEL_EYE[1]) * MODEL_SCALE,
-  -(0.4 - MODEL_EYE[2]) * MODEL_SCALE,
-];
+/**
+ * Middle of the outside model relative to the pilot's eye, in ship space (the outside camera orbits it).
+ * The pilot sits at the canopy of the exterior model; its middle is about 390 000 model units behind it.
+ */
+export const HULL_CENTER: [number, number, number] = [0, -31000 * 3.2e-5, 390000 * 3.2e-5];
 
 useGLTF.preload(MODEL_URL);
 
@@ -43,6 +42,11 @@ useGLTF.preload(MODEL_URL);
 export function Cockpit({ onLoaded }: { onLoaded?: () => void }) {
   const gltf = useGLTF(MODEL_URL);
   const gl = useThree((s) => s.gl);
+  const root = useRef<Group>(null);
+  // the cockpit is only the inside view: it folds away once the camera is out around the ship
+  useFrame(() => {
+    if (root.current) root.current.visible = flightLive.view < 0.4;
+  });
 
   const { scene, glass, env } = useMemo(() => {
     const glass = new MeshPhysicalMaterial({
@@ -89,6 +93,7 @@ export function Cockpit({ onLoaded }: { onLoaded?: () => void }) {
 
   return (
     <group
+      ref={root}
       scale={MODEL_SCALE}
       rotation={[0, Math.PI, 0]}
       position={[MODEL_SCALE * MODEL_EYE[0], -MODEL_SCALE * MODEL_EYE[1], MODEL_SCALE * MODEL_EYE[2]]}

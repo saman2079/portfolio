@@ -227,31 +227,30 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         {flight.outside ? <Eye size={16} aria-hidden /> : <Rocket size={16} aria-hidden />}
       </button>
 
-      {/* outside view: a clear way back into the cabin */}
-      {flight.outside && (
-        <button
-          type="button"
-          onClick={() => setOutside(false)}
-          className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-16 mx-auto inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border border-cyan-300/60 bg-black/50 px-5 text-sm font-semibold text-cyan-100 backdrop-blur transition hover:bg-cyan-400/20 sm:bottom-8",
-            caps
-          )}
-        >
-          <Eye size={16} aria-hidden />
-          {u.cockpitView}
-        </button>
-      )}
-
       {/* model credit (CC BY 4.0 requires attribution) */}
-      <a
-        href="https://sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713"
-        target="_blank"
-        rel="noreferrer noopener"
+      <p
         dir="ltr"
-        className="pointer-events-auto absolute bottom-1 start-3 hidden text-[9px] text-paper-500 hover:text-paper-300 sm:block"
+        className="pointer-events-auto absolute bottom-1 start-3 hidden text-[9px] text-paper-500 sm:block"
       >
-        3D model "Sci-fi Spaceship Cockpit 02" by NotARealStudio — CC BY 4.0
-      </a>
+        <a
+          href="https://sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          3D model "Sci-fi Spaceship Cockpit 02" by NotARealStudio
+        </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/space-vector-exploration-interior-redesign-0630b4fcda0845679432568b449a0490"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Space Vector Exploration, Interior Redesign" by ReiSakisaka
+        </a>
+        {" — CC BY 4.0"}
+      </p>
 
       {/* fullscreen */}
       {canFull && <button

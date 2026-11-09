@@ -10,6 +10,7 @@ import { Asteroids } from "./Asteroids";
 import { Station } from "./Station";
 import { Ship } from "./Ship";
 import { Cockpit } from "./Cockpit";
+import { Exterior } from "./Exterior";
 import { Effects } from "./Effects";
 import { SurfaceWorld } from "./SurfaceWorld";
 import { flightLive } from "@/lib/store/flightStore";
@@ -82,6 +83,7 @@ export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels:
         <Suspense fallback={null}>
           <Cockpit onLoaded={onReady} />
         </Suspense>
+        <Exterior />
       </Ship>
       <Effects tier={tier} />
       <PerformanceGuard />
