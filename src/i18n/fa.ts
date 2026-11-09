@@ -163,6 +163,18 @@ export const fa: Dictionary = {
         featured: true,
       },
       {
+        slug: "bank-abzar",
+        title: "بانک ابزار",
+        description:
+          "فروشگاه اینترنتی ابزار و تجهیزات با ویترین فارسی راست‌به‌چپ. نسخهٔ نمایشی؛ مشتری هنوز تأیید نهایی را نداده است.",
+        stack: ["Next.js", "TypeScript", "Tailwind CSS"],
+        liveUrl: "https://demo.samanellahi.ir",
+        fileName: "bank-abzar.tsx",
+        year: "۱۴۰۵",
+        status: "نسخهٔ نمایشی",
+        featured: true,
+      },
+      {
         slug: "portfolio",
         title: "Personal Portfolio",
         description: "همین وب‌سایت؛ با انیمیشن اسکرول‌محور لپ‌تاپ، دوزبانه و بهینه برای سرعت و SEO.",

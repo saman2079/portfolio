@@ -16,7 +16,7 @@ import {
 } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Screens } from "./Screens";
-import { HoloButton, Hologram } from "./Hologram";
+import { DashButtons, Hologram } from "./Hologram";
 
 export const MODEL_URL = "/models/cockpit.glb";
 /**
@@ -102,7 +102,7 @@ export function Cockpit({ onLoaded }: { onLoaded?: () => void }) {
       <pointLight position={[0, 1.75, 0.45]} color="#38bdf8" intensity={2.5} distance={4} />
       <pointLight position={[0, 1.3, 0.7]} color="#ff9a4d" intensity={1.6} distance={3} />
       <Screens />
-      <HoloButton />
+      <DashButtons />
       <Hologram />
     </group>
   );

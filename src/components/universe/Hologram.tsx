@@ -16,11 +16,12 @@ import { universeText } from "@/i18n/universe";
 import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { universeStore } from "@/lib/store/universeStore";
 import { holo } from "@/lib/store/holoStore";
+import { toggleMusic } from "@/lib/audio/music";
 import { Planet } from "./Planet";
 
 /** All positions here are in cockpit-model space (metres of the model; the pilot looks along +Z). */
 const BUTTON: [number, number, number] = [0, 1.236, 0.535];
-const RISE = 0.31;
+const RISE = 0.24;
 
 /** Should the hologram be shown right now? (it also folds away whenever the pilot leaves the cockpit view) */
 function canShow() {
@@ -34,44 +35,93 @@ function canShow() {
   );
 }
 
-/** The round button on the dash that opens and closes the hologram. */
-export function HoloButton() {
+function docLang() {
+  return typeof document !== "undefined" && document.documentElement.lang.startsWith("fa") ? "fa" : "en";
+}
+
+function Button({
+  x,
+  color,
+  active,
+  onPress,
+  caption,
+}: {
+  x: number;
+  color: [number, number, number];
+  active: () => boolean;
+  onPress: () => void;
+  caption: string;
+}) {
   const rim = useRef<MeshBasicMaterial>(null);
+  const map = useMemo(() => nameTexture(caption), [caption]);
+  useEffect(() => () => map?.dispose(), [map]);
   useFrame((state) => {
     const m = rim.current;
     if (!m) return;
-    const pulse = holo.open ? 0.55 : 0.55 + Math.sin(state.clock.elapsedTime * 3) * 0.35;
-    m.color.setRGB(3.2 * pulse, 1.3 * pulse, 0.25 * pulse);
+    // lit steadily while it is on, breathing while it waits to be pressed
+    const pulse = active() ? 1 : 0.5 + Math.sin(state.clock.elapsedTime * 3) * 0.3;
+    m.color.setRGB(color[0] * pulse, color[1] * pulse, color[2] * pulse);
   });
   return (
-    <group
-      position={BUTTON}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (e.delta > 6) return;
-        holo.open = !holo.open;
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = "";
-      }}
-    >
-      <mesh position={[0, 0.004, 0]}>
-        <cylinderGeometry args={[0.04, 0.045, 0.01, 32]} />
-        <meshBasicMaterial color="#1a0e04" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 0.0105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.022, 0.034, 32]} />
-        <meshBasicMaterial ref={rim} color={new Color(3.2, 1.3, 0.25)} toneMapped={false} side={DoubleSide} />
-      </mesh>
-      <mesh position={[0, 0.0105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.013, 20]} />
-        <meshBasicMaterial color={new Color(0.4, 1.8, 2.6)} toneMapped={false} side={DoubleSide} />
+    <group position={[BUTTON[0] + x, BUTTON[1], BUTTON[2]]}>
+      <group
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.delta > 6) return;
+          onPress();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "";
+        }}
+      >
+        <mesh position={[0, 0.004, 0]}>
+          <cylinderGeometry args={[0.04, 0.045, 0.01, 32]} />
+          <meshBasicMaterial color="#1a0e04" toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 0.0105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.022, 0.034, 32]} />
+          <meshBasicMaterial ref={rim} color={new Color(...color)} toneMapped={false} side={DoubleSide} />
+        </mesh>
+        <mesh position={[0, 0.0105, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.013, 20]} />
+          <meshBasicMaterial color={new Color(0.4, 1.8, 2.6)} toneMapped={false} side={DoubleSide} />
+        </mesh>
+      </group>
+      {/* caption behind the button, tilted up towards the pilot */}
+      <mesh position={[0, 0.014, 0.068]} rotation={[1.0, Math.PI, 0]} renderOrder={3}>
+        <planeGeometry args={[0.13, 0.0325]} />
+        <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} side={DoubleSide} />
       </mesh>
     </group>
+  );
+}
+
+/** Two round buttons on the dash: planet hologram (middle) and music (beside it), each with a caption. */
+export function DashButtons() {
+  const fa = docLang() === "fa";
+  return (
+    <>
+      <Button
+        x={0}
+        color={[3.2, 1.3, 0.25]}
+        active={() => holo.open}
+        onPress={() => {
+          holo.open = !holo.open;
+        }}
+        caption={fa ? "سیاره‌ها" : "Planets"}
+      />
+      <Button
+        x={-0.12}
+        color={[0.3, 2.6, 1.2]}
+        active={() => holo.music}
+        onPress={toggleMusic}
+        caption={fa ? "آهنگ" : "Music"}
+      />
+    </>
   );
 }
 
@@ -134,8 +184,8 @@ function Orb({
           <Planet cfg={body} interactive={false} segments={26} />
         </group>
       </group>
-      <mesh position={[0, -size * 2.1, 0]}>
-        <planeGeometry args={[size * 4.2, size * 1.05]} />
+      <mesh position={[0, -size * 1.75, 0]}>
+        <planeGeometry args={[size * 3.4, size * 0.85]} />
         <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} side={DoubleSide} />
       </mesh>
       <mesh
@@ -156,7 +206,7 @@ function Orb({
           document.body.style.cursor = "";
         }}
       >
-        <planeGeometry args={[size * 4.2, size * 5]} />
+        <planeGeometry args={[size * 3.4, size * 4]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
@@ -172,25 +222,23 @@ export function Hologram() {
   const beam = useRef<MeshBasicMaterial>(null);
   const k = useRef(0);
   const open = useRef(0);
-  const lang = typeof document !== "undefined" && document.documentElement.lang.startsWith("fa") ? "fa" : "en";
+  const lang = docLang();
   const t = universeText[lang];
 
-  const size = portrait ? 0.026 : 0.034;
-  const items = useMemo(() => {
-    const cols = portrait ? 3 : DESTINATIONS.length;
-    const gx = portrait ? 0.075 : 0.105;
-    const gy = 0.15;
-    const rows = Math.ceil(DESTINATIONS.length / cols);
-    return DESTINATIONS.map((d, i) => {
-      const r = Math.floor(i / cols);
-      const c = i % cols;
-      const inRow = Math.min(cols, DESTINATIONS.length - r * cols);
-      return {
-        id: d.id,
-        pos: [(c - (inRow - 1) / 2) * gx, ((rows - 1) / 2 - r) * gy, 0] as [number, number, number],
-      };
-    });
-  }, [portrait]);
+  // the six planets stand side by side on a half circle, like a rainbow over the dash
+  const radius = portrait ? 0.14 : 0.23;
+  const size = portrait ? 0.02 : 0.033;
+  const items = useMemo(
+    () =>
+      DESTINATIONS.map((d, i) => {
+        const theta = Math.PI * (1 - (0.07 + (0.86 * i) / (DESTINATIONS.length - 1)));
+        return {
+          id: d.id,
+          pos: [Math.cos(theta) * radius, Math.sin(theta) * radius, 0] as [number, number, number],
+        };
+      }),
+    [radius]
+  );
 
   useFrame((state, dt) => {
     const g = root.current;
@@ -212,7 +260,7 @@ export function Hologram() {
     <group ref={root} position={BUTTON} rotation={[0, Math.PI, 0]} visible={false}>
       {/* light beam from the button to the planets */}
       <mesh position={[0, RISE / 2, 0]} renderOrder={-1}>
-        <cylinderGeometry args={[0.1, 0.03, RISE, 24, 1, true]} />
+        <cylinderGeometry args={[0.12, 0.03, RISE, 24, 1, true]} />
         <meshBasicMaterial ref={beam} color={new Color(0.3, 1.1, 1.8)} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} side={DoubleSide} toneMapped={false} />
       </mesh>
       <group ref={lift}>

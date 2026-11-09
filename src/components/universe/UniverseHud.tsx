@@ -230,7 +230,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       {/* model credit (CC BY 4.0 requires attribution) */}
       <p
         dir="ltr"
-        className="pointer-events-auto absolute bottom-1 start-3 hidden text-[9px] text-paper-500 sm:block"
+        className="pointer-events-auto absolute bottom-1 start-3 block max-w-[60%] text-[8px] leading-tight text-paper-500 sm:max-w-none sm:text-[9px]"
       >
         <a
           href="https://sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713"

@@ -82,6 +82,13 @@ html[data-world="active"] #top {
   min-height: 760svh;
 }
 
+/* With the universe running, the 2D sections below the runway are not part of the page: the scroll ends
+   where the flight ends. (They still serve the lite version and anyone without WebGL.) */
+html[data-world="active"] main#main > section:not(#top),
+html[data-world="active"] footer {
+  display: none;
+}
+
 .universe-rail-dot {
   transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }

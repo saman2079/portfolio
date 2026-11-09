@@ -2,13 +2,13 @@ import type { Dictionary } from "./types";
 
 export const en: Dictionary = {
   meta: {
-    title: "Saman Sadegh Elahi — Frontend Engineer",
+    title: "Saman Seddigh Ellahi — Frontend Engineer",
     description:
-      "Portfolio of Saman Sadegh Elahi, a frontend engineer building fast, scalable interfaces with React, Next.js, TypeScript and Tailwind CSS.",
-    keywords: ["Frontend Engineer", "React", "Next.js", "TypeScript", "Portfolio", "Saman Sadegh Elahi"],
+      "Portfolio of Saman Seddigh Ellahi, a frontend engineer building fast, scalable interfaces with React, Next.js, TypeScript and Tailwind CSS.",
+    keywords: ["Frontend Engineer", "React", "Next.js", "TypeScript", "Portfolio", "Saman Seddigh Ellahi"],
     ogLocale: "en_US",
   },
-  name: "Saman Sadegh Elahi",
+  name: "Saman Seddigh Ellahi",
   role: "Frontend Engineer",
   tagline: "I build fast, clean and scalable interfaces.",
   availability: "Available for new opportunities",
@@ -160,6 +160,18 @@ export const en: Dictionary = {
         fileName: "fixino.tsx",
         year: "2025",
         status: "Live",
+        featured: true,
+      },
+      {
+        slug: "bank-abzar",
+        title: "Bank Abzar",
+        description:
+          "Online tools and hardware store with a Persian right-to-left storefront. Demo version — the client has not given final approval yet.",
+        stack: ["Next.js", "TypeScript", "Tailwind CSS"],
+        liveUrl: "https://demo.samanellahi.ir",
+        fileName: "bank-abzar.tsx",
+        year: "2026",
+        status: "Demo",
         featured: true,
       },
       {
