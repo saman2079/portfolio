@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import {
+  AdditiveBlending,
   CanvasTexture,
   Color,
   DoubleSide,
@@ -20,7 +21,7 @@ import { Planet } from "./Planet";
 
 /** All positions here are in cockpit-model space (metres of the model; the pilot looks along +Z). */
 const BUTTON: [number, number, number] = [0, 1.236, 0.535];
-const RISE = 0.24;
+const RISE = 0.185;
 
 /** Should the hologram be shown right now? (it also folds away whenever the pilot leaves the cockpit view) */
 function canShow() {
@@ -149,55 +150,6 @@ function nameTexture(text: string) {
   return t;
 }
 
-/** Dark glass with a faint grid and a glowing frame: the screen the planets are shown on. */
-function panelTexture(aspect: number) {
-  const H = 512;
-  const W = Math.round(H * aspect);
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const x = c.getContext("2d");
-  if (!x) return null;
-  const g = x.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#04202f");
-  g.addColorStop(1, "#020a12");
-  x.fillStyle = g;
-  x.fillRect(0, 0, W, H);
-  x.strokeStyle = "rgba(56,189,248,0.13)";
-  x.lineWidth = 1;
-  for (let i = 0; i <= W; i += 40) {
-    x.beginPath();
-    x.moveTo(i, 0);
-    x.lineTo(i, H);
-    x.stroke();
-  }
-  for (let j = 0; j <= H; j += 40) {
-    x.beginPath();
-    x.moveTo(0, j);
-    x.lineTo(W, j);
-    x.stroke();
-  }
-  x.fillStyle = "rgba(125,211,252,0.05)";
-  for (let j = 0; j < H; j += 6) x.fillRect(0, j, W, 2);
-  x.strokeStyle = "rgba(56,189,248,0.9)";
-  x.lineWidth = 6;
-  x.strokeRect(8, 8, W - 16, H - 16);
-  x.strokeStyle = "rgba(251,191,36,0.9)";
-  x.lineWidth = 8;
-  const L = 46;
-  for (const [cx, cy, dx, dy] of [[8, 8, 1, 1], [W - 8, 8, -1, 1], [8, H - 8, 1, -1], [W - 8, H - 8, -1, -1]] as const) {
-    x.beginPath();
-    x.moveTo(cx + dx * L, cy);
-    x.lineTo(cx, cy);
-    x.lineTo(cx, cy + dy * L);
-    x.stroke();
-  }
-  const t = new CanvasTexture(c);
-  t.colorSpace = SRGBColorSpace;
-  t.anisotropy = 4;
-  return t;
-}
-
 function Orb({
   id,
   title,
@@ -213,6 +165,9 @@ function Orb({
 }) {
   const cfg = DESTINATIONS.find((d) => d.id === id);
   const group = useRef<Group>(null);
+  const spin = useRef<Group>(null);
+  const drag = useRef<number | null>(null);
+  const turn = useRef(0);
   const map = useMemo(() => nameTexture(title), [title]);
   useEffect(() => () => map?.dispose(), [map]);
   const body = useMemo(() => (cfg ? { ...cfg, position: [0, 0, 0] as [number, number, number], radius: 1 } : null), [cfg]);
@@ -220,28 +175,54 @@ function Orb({
   useFrame((_, dt) => {
     const g = group.current;
     if (!g) return;
-    const target = universeStore.get().hovered === id ? 1.35 : 1;
-    g.scale.setScalar(g.scale.x + (target - g.scale.x) * Math.min(1, dt * 10));
+    const hovered = universeStore.get().hovered === id;
+    // hover (mouse) or touch: the planet grows and spins; dragging across it turns it by hand, all the way round
+    g.scale.setScalar(g.scale.x + ((hovered ? 1.55 : 1) - g.scale.x) * Math.min(1, dt * 10));
+    if (spin.current) {
+      spin.current.rotation.y += (hovered ? 2.2 : 0.4) * dt + turn.current;
+      turn.current = 0;
+    }
   });
 
   if (!body) return null;
   return (
     <group position={position}>
       <group ref={group}>
-        <group scale={size}>
-          <Planet cfg={body} interactive={false} segments={26} />
+        <group ref={spin}>
+          <group scale={size}>
+            <Planet cfg={body} interactive={false} segments={26} />
+          </group>
         </group>
       </group>
-      <mesh position={[0, -size * 1.75, 0]}>
+      <mesh position={[0, -size * 1.6, 0]}>
         <planeGeometry args={[size * 3.4, size * 0.85]} />
         <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} side={DoubleSide} />
       </mesh>
       <mesh
-        position={[0, -size * 0.6, 0.002]}
+        position={[0, -size * 0.5, 0.002]}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           if (e.delta > 6 || open.current < 0.8) return;
           universeStore.goTo(id);
+        }}
+        onPointerDown={(e) => {
+          if (open.current < 0.8) return;
+          e.stopPropagation();
+          drag.current = e.nativeEvent.clientX;
+          universeStore.hover(id);
+        }}
+        onPointerMove={(e) => {
+          if (open.current < 0.8) return;
+          e.stopPropagation();
+          if (drag.current !== null) {
+            turn.current += (e.nativeEvent.clientX - drag.current) * 0.03;
+            drag.current = e.nativeEvent.clientX;
+          } else if (e.nativeEvent.pointerType === "mouse") {
+            turn.current += e.nativeEvent.movementX * 0.02;
+          }
+        }}
+        onPointerUp={() => {
+          drag.current = null;
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -250,50 +231,44 @@ function Orb({
           document.body.style.cursor = "pointer";
         }}
         onPointerOut={() => {
+          drag.current = null;
           if (universeStore.get().hovered === id) universeStore.hover(null);
           document.body.style.cursor = "";
         }}
       >
-        <planeGeometry args={[size * 3.4, size * 4]} />
+        <planeGeometry args={[size * 3.4, size * 3.4]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );
 }
 
-/** Six small 3D planets that rise from the dash button. Tap one and the ship flies there. */
+/**
+ * Six small 3D planets that rise from the dash button on a flat arch, just above the name monitor
+ * and below the windshield's main view, so they do not tangle with the real planets outside.
+ */
 export function Hologram() {
   const aspect = useThree((s) => s.size.width / Math.max(1, s.size.height));
   const portrait = aspect < 0.8;
   const root = useRef<Group>(null);
   const lift = useRef<Group>(null);
+  const beam = useRef<MeshBasicMaterial>(null);
   const k = useRef(0);
   const open = useRef(0);
   const lang = docLang();
   const t = universeText[lang];
 
-  // the six planets stand side by side on a half circle, like a rainbow over the dash
-  const radius = portrait ? 0.14 : 0.23;
+  const rx = portrait ? 0.13 : 0.27;
+  const ry = portrait ? 0.06 : 0.075;
   const size = portrait ? 0.02 : 0.033;
   const items = useMemo(
     () =>
       DESTINATIONS.map((d, i) => {
         const theta = Math.PI * (1 - (0.07 + (0.86 * i) / (DESTINATIONS.length - 1)));
-        return {
-          id: d.id,
-          pos: [Math.cos(theta) * radius, Math.sin(theta) * radius, 0] as [number, number, number],
-        };
+        return { id: d.id, pos: [Math.cos(theta) * rx, Math.sin(theta) * ry, 0] as [number, number, number] };
       }),
-    [radius]
+    [rx, ry]
   );
-
-  const panel = useMemo(() => {
-    const w = 2 * radius + 0.34;
-    const h = radius + 0.22;
-    return { w, h, cy: (radius - 0.02) / 2 };
-  }, [radius]);
-  const panelMap = useMemo(() => panelTexture(panel.w / panel.h), [panel]);
-  useEffect(() => () => panelMap?.dispose(), [panelMap]);
 
   useFrame((state, dt) => {
     const g = root.current;
@@ -307,24 +282,26 @@ export function Hologram() {
       const flick = e < 1 ? 0.75 + Math.sin(state.clock.elapsedTime * 50) * 0.25 : 1;
       lift.current.scale.setScalar(Math.max(0.001, e) * flick);
     }
+    if (beam.current) beam.current.opacity = e * (0.24 + Math.sin(state.clock.elapsedTime * 2.4) * 0.05);
   });
 
   return (
     <group ref={root} position={BUTTON} rotation={[0, Math.PI, 0]} visible={false}>
+      {/* the blue light that carries the planets up from the button; it ends under them */}
+      <mesh position={[0, RISE / 2, 0]} renderOrder={-1}>
+        <cylinderGeometry args={[0.15, 0.03, RISE, 28, 1, true]} />
+        <meshBasicMaterial
+          ref={beam}
+          color={new Color(0.3, 1.1, 1.8)}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          blending={AdditiveBlending}
+          side={DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
       <group ref={lift}>
-        {/* the hologram monitor: opaque, so it hides the view behind it and the planets read cleanly */}
-        <mesh
-          position={[0, panel.cy, -0.03]}
-          onClick={(e) => {
-            if (open.current > 0.8) e.stopPropagation();
-          }}
-          onPointerOver={(e) => {
-            if (open.current > 0.8) e.stopPropagation();
-          }}
-        >
-          <planeGeometry args={[panel.w, panel.h]} />
-          <meshBasicMaterial map={panelMap} color={new Color(1.15, 1.15, 1.15)} toneMapped={false} side={DoubleSide} />
-        </mesh>
         {items.map((it) => (
           <Orb key={it.id} id={it.id} title={t.places[it.id].title} position={it.pos} size={size} open={open} />
         ))}

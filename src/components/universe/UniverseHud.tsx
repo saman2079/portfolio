@@ -11,6 +11,7 @@ import { useBase } from "@/lib/lab/baseStore";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
 import { setOutside, stationU, useFlight } from "@/lib/store/flightStore";
 import { cn } from "@/lib/utils";
+import { MusicPlayer } from "./MusicPlayer";
 
 interface Props {
   lang: Locale;
@@ -251,6 +252,8 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         </a>
         {" — CC BY 4.0"}
       </p>
+
+      <MusicPlayer lang={typeof document !== "undefined" && document.documentElement.lang.startsWith("fa") ? "fa" : "en"} />
 
       {/* fullscreen */}
       {canFull && <button
