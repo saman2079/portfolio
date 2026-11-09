@@ -8,8 +8,8 @@ export interface MusicState {
   volume: number;
 }
 
-const TRACK = "/audio/cornfield-chase.mp3";
-let state: MusicState = { open: false, playing: false, time: 0, duration: 127, volume: 0.6 };
+const TRACK = "/audio/interstellar.mp3";
+let state: MusicState = { open: false, playing: false, time: 0, duration: 199.5, volume: 0.6 };
 const listeners = new Set<() => void>();
 const set = (patch: Partial<MusicState>) => {
   state = { ...state, ...patch };

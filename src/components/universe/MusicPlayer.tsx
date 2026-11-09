@@ -137,8 +137,8 @@ export function MusicPlayer({ lang }: { lang: "fa" | "en" }) {
       <canvas ref={canvas} className="block h-[150px] w-full rounded-xl" aria-hidden />
       <div className="mt-2 flex items-center justify-between gap-2 px-1">
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-paper-100">Cornfield Chase</p>
-          <p className="truncate text-[11px] text-paper-300">Hans Zimmer</p>
+          <p className="truncate text-sm font-semibold text-paper-100">Day One</p>
+          <p className="truncate text-[11px] text-paper-300">Hans Zimmer · Interstellar</p>
         </div>
         <button type="button" onClick={music.close} aria-label={fa ? "بستن پنل (آهنگ ادامه دارد)" : "Close panel (music keeps playing)"} className="grid h-7 w-7 place-items-center rounded-full text-paper-300 hover:text-paper-100">
           <X size={14} aria-hidden />

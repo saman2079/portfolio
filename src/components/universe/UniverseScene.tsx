@@ -11,6 +11,8 @@ import { Station } from "./Station";
 import { Ship } from "./Ship";
 import { Cockpit } from "./Cockpit";
 import { Exterior } from "./Exterior";
+import { Meteors } from "./Meteors";
+import { BlackHole } from "./BlackHole";
 import { Effects } from "./Effects";
 import { SurfaceWorld } from "./SurfaceWorld";
 import { flightLive } from "@/lib/store/flightStore";
@@ -77,6 +79,7 @@ export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels:
         ))}
         <Asteroids count={tier === "high" ? 150 : 64} />
         <Station />
+        <BlackHole />
       </Space>
       <SurfaceWorld tier={tier} />
       <Ship quality={tier}>
@@ -84,6 +87,7 @@ export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels:
           <Cockpit onLoaded={onReady} />
         </Suspense>
         <Exterior />
+        <Meteors />
       </Ship>
       <Effects tier={tier} />
       <PerformanceGuard />
