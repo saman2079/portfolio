@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { AdditiveBlending, Color, DoubleSide, MathUtils, ShaderMaterial, Vector3, type Group } from "three";
 import { SUN_POSITION, type DestinationConfig } from "@/lib/universe/destinations";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
+import { PlanetBody } from "./PlanetModel";
 import {
   atmosphereFragment,
   atmosphereVertex,
@@ -127,9 +128,16 @@ export function Planet({ cfg, label, sublabel, interactive = true, sunlit = fals
   return (
     <group position={cfg.position}>
       <group ref={body} rotation={[0.18, 0, 0.12]}>
-        <mesh material={materials.planet}>
-          <sphereGeometry args={[cfg.radius, segments, Math.round(segments * 0.75)]} />
-        </mesh>
+        {/* the model streams in; until it is there the painted sphere stands in for it */}
+        <Suspense
+          fallback={
+            <mesh material={materials.planet}>
+              <sphereGeometry args={[cfg.radius, segments, Math.round(segments * 0.75)]} />
+            </mesh>
+          }
+        >
+          <PlanetBody kind={cfg.model} radius={cfg.radius} />
+        </Suspense>
       </group>
 
       <mesh material={materials.atmo} scale={ATMOS_SCALE}>

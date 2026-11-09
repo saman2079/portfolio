@@ -3,8 +3,12 @@ export type DestinationId = (typeof DESTINATION_IDS)[number];
 
 type Vec3 = [number, number, number];
 
+export type PlanetModelKind = "smac" | "gas" | "continental" | "frozen" | "lava" | "barren";
+
 export interface DestinationConfig {
   id: DestinationId;
+  /** which planet of the Various Planets model is shown */
+  model: PlanetModelKind;
   /** id of the matching DOM section: the 2D page stays the source of truth. */
   section: string;
   position: Vec3;
@@ -30,11 +34,12 @@ export const SUN_POSITION: Vec3 = [116, 26, -148];
 export const DESTINATIONS: DestinationConfig[] = [
   {
     id: "about",
+    model: "continental",
     section: "about",
     position: [-17, 11, -46],
     radius: 5.2,
-    colors: ["#0b2a5a", "#1f6fb2", "#d9e8f5"],
-    atmosphere: "#5ab4ff",
+    colors: ["#14312f", "#2f7a70", "#d9e2e3"],
+    atmosphere: "#6fc4ff",
     bands: 6,
     bandMix: 0,
     cloud: 0.65,
@@ -44,11 +49,12 @@ export const DESTINATIONS: DestinationConfig[] = [
   },
   {
     id: "lab",
+    model: "frozen",
     section: "lab",
     position: [21, -3, -82],
     radius: 4.6,
-    colors: ["#2a0f4d", "#7b3fe4", "#e0b3ff"],
-    atmosphere: "#b57bff",
+    colors: ["#3d3b49", "#7b7d92", "#dfe3f0"],
+    atmosphere: "#a9b8ff",
     bands: 8,
     bandMix: 0.4,
     cloud: 0.2,
@@ -58,11 +64,12 @@ export const DESTINATIONS: DestinationConfig[] = [
   },
   {
     id: "experience",
+    model: "barren",
     section: "experience",
     position: [-21, 5, -130],
     radius: 6.5,
-    colors: ["#3a2412", "#b0652a", "#e9b36b"],
-    atmosphere: "#ff9a4d",
+    colors: ["#3a2214", "#7a4a2c", "#c08a5c"],
+    atmosphere: "#d28a55",
     bands: 7,
     bandMix: 0.15,
     cloud: 0.25,
@@ -72,11 +79,12 @@ export const DESTINATIONS: DestinationConfig[] = [
   },
   {
     id: "skills",
+    model: "gas",
     section: "skills",
     position: [18, 5, -182],
     radius: 7.5,
-    colors: ["#0d3b3f", "#1fa6a0", "#c8fff3"],
-    atmosphere: "#5ff2e0",
+    colors: ["#7a4410", "#c98a2a", "#f0c880"],
+    atmosphere: "#ffb25a",
     bands: 14,
     bandMix: 0.85,
     cloud: 0,
@@ -87,11 +95,12 @@ export const DESTINATIONS: DestinationConfig[] = [
   },
   {
     id: "projects",
+    model: "lava",
     section: "projects",
     position: [-13, -4, -236],
     radius: 8,
-    colors: ["#5a1a0a", "#e0561f", "#ffd199"],
-    atmosphere: "#ff7a3d",
+    colors: ["#1d1512", "#5a3a2c", "#ff7a2a"],
+    atmosphere: "#ff6a2a",
     bands: 10,
     bandMix: 0.9,
     cloud: 0,
@@ -101,11 +110,12 @@ export const DESTINATIONS: DestinationConfig[] = [
   },
   {
     id: "contact",
+    model: "smac",
     section: "contact",
     position: [9, 2, -292],
     radius: 6,
-    colors: ["#5f7fa6", "#cfe0f2", "#ffffff"],
-    atmosphere: "#9fd2ff",
+    colors: ["#4a2616", "#9a3a24", "#d7d3d0"],
+    atmosphere: "#e0906c",
     bands: 5,
     bandMix: 0.1,
     cloud: 0.4,
@@ -118,6 +128,7 @@ export const DESTINATIONS: DestinationConfig[] = [
 /** Large decorative planet on the right of the opening view (not a destination). */
 export const HORIZON_PLANET: DestinationConfig = {
   id: "projects",
+  model: "gas",
   section: "top",
   position: [62, -26, -70],
   radius: 34,

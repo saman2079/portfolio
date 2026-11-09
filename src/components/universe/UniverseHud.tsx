@@ -250,6 +250,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "Space Vector Exploration, Interior Redesign" by ReiSakisaka
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/various-planets-73c6c24e7c40409cafc6adacd5d71ff5"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Various Planets" by feivelyn
+        </a>
         {" — CC BY 4.0"}
       </p>
 

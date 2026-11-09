@@ -2,7 +2,7 @@
 
 import { Suspense, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
-import { DESTINATIONS, HORIZON_PLANET, SUN_POSITION, type DestinationId } from "@/lib/universe/destinations";
+import { DESTINATIONS, HORIZON_PLANET, type DestinationId } from "@/lib/universe/destinations";
 import { worldStore } from "@/lib/store/worldStore";
 import { Planet } from "./Planet";
 import { Sky, Sun } from "./Sky";
@@ -11,8 +11,6 @@ import { Station } from "./Station";
 import { Ship } from "./Ship";
 import { Cockpit } from "./Cockpit";
 import { Exterior } from "./Exterior";
-import { Meteors } from "./Meteors";
-import { BlackHole } from "./BlackHole";
 import { Effects } from "./Effects";
 import { SurfaceWorld } from "./SurfaceWorld";
 import { flightLive } from "@/lib/store/flightStore";
@@ -49,6 +47,9 @@ function PerformanceGuard() {
   return null;
 }
 
+/** The planets are lit from behind the camera, so the side that faces the pilot is the lit one. */
+const LIGHT_POSITION: [number, number, number] = [60, 45, 120];
+
 /** Everything that is "space": hidden while the ship is on a planet's surface. */
 function Space({ children }: { children: ReactNode }) {
   const group = useRef<Group>(null);
@@ -64,7 +65,7 @@ export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels:
       <color attach="background" args={["#02040a"]} />
       <ambientLight intensity={0.06} />
       <hemisphereLight args={["#8fb0ff", "#1c1420", 0.45]} />
-      <directionalLight position={SUN_POSITION} intensity={2.4} color="#ffe2c4" />
+      <directionalLight position={LIGHT_POSITION} intensity={3} color="#ffe2c4" />
 
       <Space>
         <Sky tier={tier} />
@@ -79,7 +80,6 @@ export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels:
         ))}
         <Asteroids count={tier === "high" ? 150 : 64} />
         <Station />
-        <BlackHole />
       </Space>
       <SurfaceWorld tier={tier} />
       <Ship quality={tier}>
@@ -87,7 +87,6 @@ export function UniverseScene({ tier, onReady }: { tier: "high" | "low"; labels:
           <Cockpit onLoaded={onReady} />
         </Suspense>
         <Exterior />
-        <Meteors />
       </Ship>
       <Effects tier={tier} />
       <PerformanceGuard />
