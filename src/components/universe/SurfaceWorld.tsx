@@ -34,6 +34,34 @@ const SKYBOX: Record<string, { url: string; haze: string; ground: [string, strin
   experience: { url: "/models/alien-sky.jpg", haze: "#66463f", ground: ["#4a2219", "#8a4a34", "#c9875e"] },
 };
 
+/**
+ * Ground under the ship for the photographic worlds: the photo's own ground, re-projected onto a
+ * flat plane as if the photographer stood H metres up, so the hull sits on it instead of floating.
+ */
+const GROUND_H = 18;
+const groundVertex = /* glsl */ `
+  varying vec2 vLocal;
+  void main() {
+    vLocal = position.xy;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const groundFragment = /* glsl */ `
+  uniform sampler2D uMap;
+  uniform float uH;
+  varying vec2 vLocal;
+  void main() {
+    // circle geometry lies in XY; the mesh is rotated so local (x, y) -> world (x, -z)
+    vec3 d = normalize(vec3(vLocal.x, -uH, -vLocal.y));
+    float u = fract(atan(d.z, d.x) / 6.28318530718);
+    float v = 1.0 - acos(clamp(d.y, -1.0, 1.0)) / 3.14159265359;
+    vec3 c = texture2D(uMap, vec2(u, v)).rgb;
+    float r = length(vLocal);
+    gl_FragColor = vec4(c * 0.92, 1.0 - smoothstep(45.0, 120.0, r));
+    #include <colorspace_fragment>
+  }
+`;
+
 const SIZE = 900;
 const SPORES = 320;
 
@@ -89,12 +117,21 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       },
     });
     let sky: ShaderMaterial | MeshBasicMaterial;
+    let ground: ShaderMaterial | null = null;
     if (box) {
+      ground = new ShaderMaterial({
+        vertexShader: groundVertex,
+        fragmentShader: groundFragment,
+        transparent: true,
+        depthWrite: false,
+        uniforms: { uMap: { value: null }, uH: { value: GROUND_H } },
+      });
       const m = new MeshBasicMaterial({ color: "#000000", side: BackSide, depthWrite: false, fog: false, toneMapped: false });
       new TextureLoader().load(box.url, (tex) => {
         tex.colorSpace = SRGBColorSpace;
         tex.anisotropy = 4;
         m.map = tex;
+        if (ground) ground.uniforms["uMap"]!.value = tex;
         m.color.set("#ffffff");
         m.needsUpdate = true;
       });
@@ -163,6 +200,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       sporeColor: colorC.clone().multiplyScalar(1.8),
       fog: new Fog(horizon.clone(), box ? 4000 : 30, box ? 5000 : 380),
       photo: Boolean(box),
+      ground,
     };
   }, [cfg, tier]);
 
@@ -216,6 +254,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       world.terrain.dispose();
       if (world.sky instanceof MeshBasicMaterial) world.sky.map?.dispose();
       world.sky.dispose();
+      world.ground?.dispose();
       world.sporeGeo.dispose();
       spireGeo.dispose();
       crystalGeo.dispose();
@@ -260,6 +299,12 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         <sphereGeometry args={[1400, 32, 16]} />
       </mesh>
 
+      {world.ground && (
+        <mesh material={world.ground} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} frustumCulled={false} renderOrder={-5}>
+          <circleGeometry args={[130, 64]} />
+        </mesh>
+      )}
+
       {!world.photo && <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />}
 
       {!world.photo && (
@@ -289,14 +334,18 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
       {/* landing pad under the hull */}
       <group position={[0, 0.04, 9.4]} rotation={[-Math.PI / 2, 0, 0]} scale={1.9}>
-        <mesh>
-          <ringGeometry args={[8.2, 8.7, 72]} />
-          <meshBasicMaterial color={new Color(3.2, 1.3, 0.25)} toneMapped={false} />
-        </mesh>
-        <mesh>
-          <ringGeometry args={[6.4, 6.55, 72]} />
-          <meshBasicMaterial color={new Color(0.3, 1.6, 2.4)} toneMapped={false} />
-        </mesh>
+        {!world.photo && (
+          <mesh>
+            <ringGeometry args={[8.2, 8.7, 72]} />
+            <meshBasicMaterial color={new Color(3.2, 1.3, 0.25)} toneMapped={false} />
+          </mesh>
+        )}
+        {!world.photo && (
+          <mesh>
+            <ringGeometry args={[6.4, 6.55, 72]} />
+            <meshBasicMaterial color={new Color(0.3, 1.6, 2.4)} toneMapped={false} />
+          </mesh>
+        )}
         <mesh position={[0, 0, -0.01]}>
           <circleGeometry args={[8.2, 72]} />
           <meshBasicMaterial color="#05080e" transparent opacity={0.55} />
