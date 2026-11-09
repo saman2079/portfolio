@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import {
-  AdditiveBlending,
   CanvasTexture,
   Color,
   DoubleSide,
@@ -150,6 +149,55 @@ function nameTexture(text: string) {
   return t;
 }
 
+/** Dark glass with a faint grid and a glowing frame: the screen the planets are shown on. */
+function panelTexture(aspect: number) {
+  const H = 512;
+  const W = Math.round(H * aspect);
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const x = c.getContext("2d");
+  if (!x) return null;
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#04202f");
+  g.addColorStop(1, "#020a12");
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, H);
+  x.strokeStyle = "rgba(56,189,248,0.13)";
+  x.lineWidth = 1;
+  for (let i = 0; i <= W; i += 40) {
+    x.beginPath();
+    x.moveTo(i, 0);
+    x.lineTo(i, H);
+    x.stroke();
+  }
+  for (let j = 0; j <= H; j += 40) {
+    x.beginPath();
+    x.moveTo(0, j);
+    x.lineTo(W, j);
+    x.stroke();
+  }
+  x.fillStyle = "rgba(125,211,252,0.05)";
+  for (let j = 0; j < H; j += 6) x.fillRect(0, j, W, 2);
+  x.strokeStyle = "rgba(56,189,248,0.9)";
+  x.lineWidth = 6;
+  x.strokeRect(8, 8, W - 16, H - 16);
+  x.strokeStyle = "rgba(251,191,36,0.9)";
+  x.lineWidth = 8;
+  const L = 46;
+  for (const [cx, cy, dx, dy] of [[8, 8, 1, 1], [W - 8, 8, -1, 1], [8, H - 8, 1, -1], [W - 8, H - 8, -1, -1]] as const) {
+    x.beginPath();
+    x.moveTo(cx + dx * L, cy);
+    x.lineTo(cx, cy);
+    x.lineTo(cx, cy + dy * L);
+    x.stroke();
+  }
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
 function Orb({
   id,
   title,
@@ -219,7 +267,6 @@ export function Hologram() {
   const portrait = aspect < 0.8;
   const root = useRef<Group>(null);
   const lift = useRef<Group>(null);
-  const beam = useRef<MeshBasicMaterial>(null);
   const k = useRef(0);
   const open = useRef(0);
   const lang = docLang();
@@ -240,6 +287,14 @@ export function Hologram() {
     [radius]
   );
 
+  const panel = useMemo(() => {
+    const w = 2 * radius + 0.34;
+    const h = radius + 0.22;
+    return { w, h, cy: (radius - 0.02) / 2 };
+  }, [radius]);
+  const panelMap = useMemo(() => panelTexture(panel.w / panel.h), [panel]);
+  useEffect(() => () => panelMap?.dispose(), [panelMap]);
+
   useFrame((state, dt) => {
     const g = root.current;
     if (!g) return;
@@ -252,18 +307,24 @@ export function Hologram() {
       const flick = e < 1 ? 0.75 + Math.sin(state.clock.elapsedTime * 50) * 0.25 : 1;
       lift.current.scale.setScalar(Math.max(0.001, e) * flick);
     }
-    // the light beam only shows while the planets are rising or folding away, never over the open hologram
-    if (beam.current) beam.current.opacity = 0.3 * Math.sin(Math.PI * e);
   });
 
   return (
     <group ref={root} position={BUTTON} rotation={[0, Math.PI, 0]} visible={false}>
-      {/* light beam from the button to the planets */}
-      <mesh position={[0, RISE / 2, 0]} renderOrder={-1}>
-        <cylinderGeometry args={[0.12, 0.03, RISE, 24, 1, true]} />
-        <meshBasicMaterial ref={beam} color={new Color(0.3, 1.1, 1.8)} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} side={DoubleSide} toneMapped={false} />
-      </mesh>
       <group ref={lift}>
+        {/* the hologram monitor: opaque, so it hides the view behind it and the planets read cleanly */}
+        <mesh
+          position={[0, panel.cy, -0.03]}
+          onClick={(e) => {
+            if (open.current > 0.8) e.stopPropagation();
+          }}
+          onPointerOver={(e) => {
+            if (open.current > 0.8) e.stopPropagation();
+          }}
+        >
+          <planeGeometry args={[panel.w, panel.h]} />
+          <meshBasicMaterial map={panelMap} color={new Color(1.15, 1.15, 1.15)} toneMapped={false} side={DoubleSide} />
+        </mesh>
         {items.map((it) => (
           <Orb key={it.id} id={it.id} title={t.places[it.id].title} position={it.pos} size={size} open={open} />
         ))}
