@@ -21,7 +21,7 @@ const MAX_PITCH = 0.3;
 const UP = new Vector3(0, 1, 0);
 /** the point the outside camera orbits: just ahead of the pilot, in the middle of the hull */
 const HULL_CENTER = new Vector3(...HULL);
-const ORBIT_RADIUS = 38;
+const ORBIT_RADIUS = 29;
 /** centre of the Lab build grid, in ship space while landed (ground is EYE below the pilot) */
 const GRID_CENTER = new Vector3(0, -EYE, -24);
 /** world units per second that counts as "full speed" for effects */

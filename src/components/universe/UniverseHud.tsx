@@ -221,7 +221,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         aria-label={flight.outside ? u.cockpitView : u.outsideView}
         title={flight.outside ? u.cockpitView : u.outsideView}
         className={cn(
-          "pointer-events-auto absolute bottom-3 end-16 grid h-10 w-10 place-items-center rounded-full border bg-black/30 text-paper-100 backdrop-blur transition hover:border-cyan-300/60",
+          "pointer-events-auto absolute bottom-3 right-16 grid h-10 w-10 place-items-center rounded-full border bg-black/30 text-paper-100 backdrop-blur transition hover:border-cyan-300/60",
           flight.outside ? "border-cyan-300/70 text-cyan-200" : "border-white/20"
         )}
       >
@@ -231,7 +231,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
       {/* model credit (CC BY 4.0 requires attribution) */}
       <p
         dir="ltr"
-        className="pointer-events-auto absolute bottom-1 start-3 block max-w-[60%] text-[8px] leading-tight text-paper-500 sm:max-w-none sm:text-[9px]"
+        className="pointer-events-auto absolute bottom-1 left-3 block max-w-[60%] text-[8px] leading-tight text-paper-500 sm:max-w-[calc(100%-9rem)] sm:text-[9px]"
       >
         <a
           href="https://sketchfab.com/3d-models/sci-fi-spaceship-cockpit-02-c6825892999242319c1a29326c4e7713"
@@ -270,7 +270,7 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         onClick={toggleFull}
         aria-label={full ? u.exitFullscreen : u.fullscreen}
         title={full ? u.exitFullscreen : u.fullscreen}
-        className="pointer-events-auto absolute bottom-3 end-3 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/30 text-paper-100 backdrop-blur transition hover:border-cyan-300/60"
+        className="pointer-events-auto absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/30 text-paper-100 backdrop-blur transition hover:border-cyan-300/60"
       >
         {full ? <Minimize2 size={16} aria-hidden /> : <Maximize2 size={16} aria-hidden />}
       </button>}

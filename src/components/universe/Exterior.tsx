@@ -8,8 +8,8 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { flightLive } from "@/lib/store/flightStore";
 
 export const EXTERIOR_URL = "/models/exterior.glb";
-/** ship-space size: the model is about 1.04 million units long, this makes it ~33 long */
-export const EXTERIOR_SCALE = 3.2e-5;
+/** ship-space size: the model is about 1.04 million units long, this makes it ~25 long */
+export const EXTERIOR_SCALE = 2.4e-5;
 /** where the pilot sits inside the model, in the model's own units (the middle of its canopy window) */
 const EYE = [-133202, 532000, 60000] as const;
 

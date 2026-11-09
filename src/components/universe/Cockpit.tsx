@@ -17,6 +17,7 @@ import {
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Screens } from "./Screens";
 import { DashButtons, Hologram } from "./Hologram";
+import { EXTERIOR_SCALE } from "./Exterior";
 
 export const MODEL_URL = "/models/cockpit.glb";
 /**
@@ -29,7 +30,7 @@ export const MODEL_EYE: [number, number, number] = [0, 1.5, -0.05];
  * Middle of the outside model relative to the pilot's eye, in ship space (the outside camera orbits it).
  * The pilot sits at the canopy of the exterior model; its middle is about 390 000 model units behind it.
  */
-export const HULL_CENTER: [number, number, number] = [0, -31000 * 3.2e-5, 390000 * 3.2e-5];
+export const HULL_CENTER: [number, number, number] = [0, -31000 * EXTERIOR_SCALE, 390000 * EXTERIOR_SCALE];
 
 useGLTF.preload(MODEL_URL);
 
