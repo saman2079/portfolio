@@ -8,8 +8,8 @@ export interface MusicState {
   volume: number;
 }
 
-const TRACK = "/audio/stay.mp3";
-let state: MusicState = { open: false, playing: false, time: 0, duration: 412.5, volume: 0.6 };
+const TRACK = "/audio/cornfield-chase.mp3";
+let state: MusicState = { open: false, playing: false, time: 0, duration: 127, volume: 0.6 };
 const listeners = new Set<() => void>();
 const set = (patch: Partial<MusicState>) => {
   state = { ...state, ...patch };
@@ -91,18 +91,17 @@ export const music = {
     if (state.playing) music.pause();
     else music.play();
   },
-  /** the dash button: opens the player and starts the track, or closes it and stops */
+  /** the dash button: shows or hides the player; the track keeps playing when it is hidden */
   toggleOpen() {
     if (state.open) {
-      music.pause();
       set({ open: false });
     } else {
       set({ open: true });
-      music.play();
+      if (!state.playing) music.play();
     }
   },
+  /** hide the player without touching the music */
   close() {
-    music.pause();
     set({ open: false });
   },
   seek(t: number) {

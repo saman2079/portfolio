@@ -21,7 +21,7 @@ import { Planet } from "./Planet";
 
 /** All positions here are in cockpit-model space (metres of the model; the pilot looks along +Z). */
 const BUTTON: [number, number, number] = [0, 1.236, 0.535];
-const RISE = 0.185;
+const RISE = 0.15;
 
 /** Should the hologram be shown right now? (it also folds away whenever the pilot leaves the cockpit view) */
 function canShow() {
@@ -259,7 +259,7 @@ export function Hologram() {
   const t = universeText[lang];
 
   const rx = portrait ? 0.13 : 0.27;
-  const ry = portrait ? 0.06 : 0.075;
+  const ry = portrait ? 0.05 : 0.06;
   const size = portrait ? 0.02 : 0.033;
   const items = useMemo(
     () =>
