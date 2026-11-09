@@ -52,6 +52,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Various Planets" by feivelyn — CC BY 4.0
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/landscape-of-an-alien-planet-skybox-676c023d919344efbfa9876c85db7d11"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Landscape of an alien planet (Skybox)" by Jungle Jim — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

@@ -259,6 +259,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "Various Planets" by feivelyn
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/landscape-of-an-alien-planet-skybox-676c023d919344efbfa9876c85db7d11"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Landscape of an alien planet (Skybox)" by Jungle Jim
+        </a>
         {" — CC BY 4.0"}
       </p>
 

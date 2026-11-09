@@ -11,6 +11,9 @@ import {
   ConeGeometry,
   Fog,
   InstancedMesh,
+  MeshBasicMaterial,
+  SRGBColorSpace,
+  TextureLoader,
   Object3D,
   OctahedronGeometry,
   Points,
@@ -25,6 +28,11 @@ import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, terrainFragment, terrainVertex } from "./surface/shaders";
+
+/** Planets whose sky (and far horizon) is a photographic skybox instead of the procedural dome. */
+const SKYBOX: Record<string, { url: string; haze: string; ground: [string, string, string] }> = {
+  experience: { url: "/models/alien-sky.jpg", haze: "#66463f", ground: ["#4a2219", "#8a4a34", "#c9875e"] },
+};
 
 const SIZE = 900;
 const SPORES = 320;
@@ -59,10 +67,11 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const keepClear = cfg.id === "lab" ? 52 : 0;
     const geometry = buildTerrain(params, SIZE, tier === "high" ? 200 : 120);
 
-    const colorA = new Color(cfg.colors[0]);
-    const colorB = new Color(cfg.colors[1]);
-    const colorC = new Color(cfg.colors[2]);
-    const horizon = new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
+    const box = SKYBOX[cfg.id];
+    const colorA = new Color(box ? box.ground[0] : cfg.colors[0]);
+    const colorB = new Color(box ? box.ground[1] : cfg.colors[1]);
+    const colorC = new Color(box ? box.ground[2] : cfg.colors[2]);
+    const horizon = box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
     const zenith = colorA.clone().multiplyScalar(0.9);
     const sun = new Vector3(cfg.light[0] * 0.8, Math.min(0.5, Math.max(0.22, cfg.light[1])), -(Math.abs(cfg.light[2]) + 0.4)).normalize();
 
@@ -79,7 +88,18 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         uFog: { value: 0.0075 },
       },
     });
-    const sky = new ShaderMaterial({
+    let sky: ShaderMaterial | MeshBasicMaterial;
+    if (box) {
+      const m = new MeshBasicMaterial({ color: "#000000", side: BackSide, depthWrite: false, fog: false, toneMapped: false });
+      new TextureLoader().load(box.url, (tex) => {
+        tex.colorSpace = SRGBColorSpace;
+        tex.anisotropy = 4;
+        m.map = tex;
+        m.color.set("#ffffff");
+        m.needsUpdate = true;
+      });
+      sky = m;
+    } else sky = new ShaderMaterial({
       vertexShader: skyVertex,
       fragmentShader: skyFragment,
       side: BackSide,
@@ -193,6 +213,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     () => () => {
       world.geometry.dispose();
       world.terrain.dispose();
+      if (world.sky instanceof MeshBasicMaterial) world.sky.map?.dispose();
       world.sky.dispose();
       world.sporeGeo.dispose();
       spireGeo.dispose();
@@ -215,8 +236,10 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const t = state.clock.elapsedTime;
     state.camera.getWorldPosition(camPos);
     if (dome.current) dome.current.position.set(camPos.x, camPos.y + EYE, camPos.z);
-    const su = world.sky.uniforms["uTime"];
-    if (su) su.value = t;
+    if (world.sky instanceof ShaderMaterial) {
+      const su = world.sky.uniforms["uTime"];
+      if (su) su.value = t;
+    }
     // drifting spores
     const p = world.sporePos;
     const b = world.sporeBase;
@@ -232,7 +255,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
   return (
     <group ref={root} position={[0, -EYE, 0]} visible={false}>
-      <mesh ref={dome} material={world.sky} frustumCulled={false} renderOrder={-10}>
+      <mesh ref={dome} material={world.sky} frustumCulled={false} renderOrder={-10} scale={[-1, 1, 1]}>
         <sphereGeometry args={[1400, 32, 16]} />
       </mesh>
 
