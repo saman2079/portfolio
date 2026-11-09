@@ -161,7 +161,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       spireColor: colorB.clone().multiplyScalar(0.42),
       crystalColor: colorC.clone().multiplyScalar(2.4),
       sporeColor: colorC.clone().multiplyScalar(1.8),
-      fog: new Fog(horizon.clone(), 30, 380),
+      fog: new Fog(horizon.clone(), box ? 4000 : 30, box ? 5000 : 380),
+      photo: Boolean(box),
     };
   }, [cfg, tier]);
 
@@ -259,16 +260,20 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         <sphereGeometry args={[1400, 32, 16]} />
       </mesh>
 
-      <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />
+      {!world.photo && <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />}
 
-      <instancedMesh ref={spireMesh} args={[spireGeo, undefined, world.spires.length]} frustumCulled={false}>
-        <meshStandardMaterial color={world.spireColor} roughness={0.92} flatShading />
-      </instancedMesh>
-      <instancedMesh ref={crystalMesh} args={[crystalGeo, undefined, world.crystals.length]} frustumCulled={false}>
-        <meshBasicMaterial color={world.crystalColor} toneMapped={false} />
-      </instancedMesh>
+      {!world.photo && (
+        <instancedMesh ref={spireMesh} args={[spireGeo, undefined, world.spires.length]} frustumCulled={false}>
+          <meshStandardMaterial color={world.spireColor} roughness={0.92} flatShading />
+        </instancedMesh>
+      )}
+      {!world.photo && (
+        <instancedMesh ref={crystalMesh} args={[crystalGeo, undefined, world.crystals.length]} frustumCulled={false}>
+          <meshBasicMaterial color={world.crystalColor} toneMapped={false} />
+        </instancedMesh>
+      )}
 
-      <points ref={spores} geometry={world.sporeGeo} frustumCulled={false}>
+      <points ref={spores} geometry={world.sporeGeo} frustumCulled={false} visible={!world.photo}>
         <pointsMaterial
           color={world.sporeColor}
           size={0.16}
