@@ -141,7 +141,7 @@ export function Planet({ cfg, label, sublabel, interactive = true, sunlit = fals
         </Suspense>
       </group>
 
-      {cfg.id === "lab" && <StormShell radius={cfg.radius} />}
+      {cfg.id === "lab" && <StormShell radius={cfg.radius} bolts={interactive} />}
 
       <mesh material={materials.atmo} scale={ATMOS_SCALE}>
         <sphereGeometry args={[cfg.radius, 48, 32]} />
