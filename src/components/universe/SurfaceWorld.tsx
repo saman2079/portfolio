@@ -113,10 +113,10 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const box = SKYBOX[cfg.id];
     // the lab sits under a thunderstorm (textures from the "Thunderstorm" model)
     const storm = cfg.id === "lab";
-    const colorA = new Color(storm ? "#0a0c10" : box ? box.ground[0] : cfg.colors[0]);
-    const colorB = new Color(storm ? "#262b33" : box ? box.ground[1] : cfg.colors[1]);
-    const colorC = new Color(storm ? "#5c6672" : box ? box.ground[2] : cfg.colors[2]);
-    const horizon = storm ? new Color("#1d252e") : box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
+    const colorA = new Color(storm ? "#141b24" : box ? box.ground[0] : cfg.colors[0]);
+    const colorB = new Color(storm ? "#4a5866" : box ? box.ground[1] : cfg.colors[1]);
+    const colorC = new Color(storm ? "#a9bccd" : box ? box.ground[2] : cfg.colors[2]);
+    const horizon = storm ? new Color("#222c38") : box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
     const stormBase = horizon.clone();
     const zenith = colorA.clone().multiplyScalar(0.9);
     const sun = new Vector3(cfg.light[0] * 0.8, Math.min(0.5, Math.max(0.22, cfg.light[1])), -(Math.abs(cfg.light[2]) + 0.4)).normalize();
@@ -222,8 +222,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const sporeGeo = new BufferGeometry();
     sporeGeo.setAttribute("position", new BufferAttribute(sporePos, 3));
 
-    // rain: short slanted streaks that fall around the camera
-    const RAIN = tier === "high" ? 260 : 120;
+    // snow: slow flakes drifting down around the camera (the lab is an ice planet)
+    const RAIN = tier === "high" ? 420 : 200;
     const rainBase = new Float32Array(RAIN * 3);
     for (let i = 0; i < RAIN; i++) {
       const a = rand() * Math.PI * 2;
@@ -233,7 +233,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       rainBase[i * 3 + 2] = Math.sin(a) * rr;
     }
     const rainGeo = new BufferGeometry();
-    rainGeo.setAttribute("position", new BufferAttribute(new Float32Array(RAIN * 6), 3));
+    rainGeo.setAttribute("position", new BufferAttribute(new Float32Array(RAIN * 3), 3));
     const lightning = { next: 2.5, t0: -10, flash: 0 };
 
     return {
@@ -365,23 +365,17 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       const h = world.terrain.uniforms["uHorizon"]!.value as Color;
       h.copy(world.stormBase).multiplyScalar(1 + flash * 4.5);
       world.fog.color.copy(h);
-      // rain
+      // snow
       const rp = world.rainGeo.getAttribute("position");
       const arr = rp.array as Float32Array;
       const cx = camPos.x;
       const cz = camPos.z;
       for (let i = 0; i < world.RAIN; i++) {
         const b = i * 3;
-        const y = 26 - ((((world.rainBase[b + 1] ?? 0) + t * 30) % 26) + 26) % 26;
-        const x = cx + (world.rainBase[b] ?? 0) - y * 0.12;
-        const z = cz + (world.rainBase[b + 2] ?? 0);
-        const o = i * 6;
-        arr[o] = x;
-        arr[o + 1] = y;
-        arr[o + 2] = z;
-        arr[o + 3] = x - 0.16;
-        arr[o + 4] = y + 1.3;
-        arr[o + 5] = z;
+        const y = 26 - ((((world.rainBase[b + 1] ?? 0) + t * 2.6 * (0.7 + (i % 5) * 0.12)) % 26) + 26) % 26;
+        arr[b] = cx + (world.rainBase[b] ?? 0) + Math.sin(t * 0.5 + i) * 1.1 + y * 0.08;
+        arr[b + 1] = y;
+        arr[b + 2] = cz + (world.rainBase[b + 2] ?? 0) + Math.cos(t * 0.43 + i * 1.7) * 1.1;
       }
       rp.needsUpdate = true;
     }
@@ -428,9 +422,9 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       {world.storm && <StormMountains lightning={world.lightning} />}
 
       {world.storm && (
-        <lineSegments geometry={world.rainGeo} frustumCulled={false}>
-          <lineBasicMaterial color="#b4c6d8" transparent opacity={0.2} depthWrite={false} />
-        </lineSegments>
+        <points geometry={world.rainGeo} frustumCulled={false}>
+          <pointsMaterial color="#dbe8f5" size={0.13} sizeAttenuation transparent opacity={0.75} depthWrite={false} />
+        </points>
       )}
 
       <points ref={spores} geometry={world.sporeGeo} frustumCulled={false} visible={!world.photo && !world.storm}>

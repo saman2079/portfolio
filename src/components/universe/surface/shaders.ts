@@ -48,7 +48,7 @@ void main() {
 #ifdef USE_TEX
   // photographic rock detail from the Thunderstorm model, tiled at two scales
   float rt = texture2D(uTex, vWorld.xz * 0.011).r * 0.65 + texture2D(uTex, vWorld.xz * 0.063 + 0.37).r * 0.35;
-  col *= 0.35 + rt * 1.55;
+  col *= 0.5 + rt * 1.9;
 #endif
   float diff = max(dot(n, uSun), 0.0);
   vec3 amb = mix(uA, uHorizon, 0.55) * 0.5;

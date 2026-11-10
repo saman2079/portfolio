@@ -21,8 +21,8 @@ import {
  * Inside RADIUS_IN they are dropped, so the flat landing ground and base builder stay clear.
  */
 const SCALE = 0.5;
-const RADIUS_IN = 540;
-const RADIUS_FULL = 800;
+const RADIUS_IN = 190;
+const RADIUS_FULL = 330;
 const SUN = new Vector3(-0.3, 0.5, -0.8).normalize();
 const sm = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
@@ -80,9 +80,9 @@ export function StormMountains({ lightning }: { lightning: { flash: number } }) 
         for (let i = 0; i < m.v; i++) {
           const l = Math.max(0, n.getX(i) * SUN.x + n.getY(i) * SUN.y + n.getZ(i) * SUN.z);
           const s = 0.3 + 0.9 * l;
-          col[i * 3] = s;
+          col[i * 3] = s * 0.95;
           col[i * 3 + 1] = s * 1.02;
-          col[i * 3 + 2] = s * 1.08;
+          col[i * 3 + 2] = s * 1.15;
         }
         g.setAttribute("color", new BufferAttribute(col, 3));
 
