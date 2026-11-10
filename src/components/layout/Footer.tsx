@@ -92,6 +92,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Thunderstorm" by Ludovico Antonicelli — CC BY-NC 4.0 (textures used, non-commercial)
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/mars-landscape-83f6f32b0a694f939cd16bf04f5565ef"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Mars landscape" by David Vacas Madrid — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

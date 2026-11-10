@@ -30,6 +30,7 @@ import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
 import { Forest } from "./surface/Forest";
 import { StormMountains } from "./surface/StormMountains";
+import { MarsGround } from "./surface/MarsGround";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, stormFragment, terrainFragment, terrainVertex } from "./surface/shaders";
 
@@ -113,9 +114,10 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const box = SKYBOX[cfg.id];
     // the lab sits under a thunderstorm (textures from the "Thunderstorm" model)
     const storm = cfg.id === "lab";
-    const colorA = new Color(storm ? "#141b24" : box ? box.ground[0] : cfg.colors[0]);
-    const colorB = new Color(storm ? "#4a5866" : box ? box.ground[1] : cfg.colors[1]);
-    const colorC = new Color(storm ? "#a9bccd" : box ? box.ground[2] : cfg.colors[2]);
+    const mars = cfg.id === "contact";
+    const colorA = new Color(storm ? "#141b24" : mars ? "#6a3a22" : box ? box.ground[0] : cfg.colors[0]);
+    const colorB = new Color(storm ? "#4a5866" : mars ? "#a86a40" : box ? box.ground[1] : cfg.colors[1]);
+    const colorC = new Color(storm ? "#a9bccd" : mars ? "#d8a878" : box ? box.ground[2] : cfg.colors[2]);
     const horizon = storm ? new Color("#222c38") : box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
     const stormBase = horizon.clone();
     const zenith = colorA.clone().multiplyScalar(0.9);
@@ -190,8 +192,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
     // spires and glowing crystals standing on the real terrain height
     const rand = mulberry32(Math.floor(cfg.seed * 100) + 9);
-    const spireCount = storm ? 0 : tier === "high" ? 70 : 34;
-    const crystalCount = storm ? 0 : tier === "high" ? 120 : 56;
+    const spireCount = storm || mars ? 0 : tier === "high" ? 70 : 34;
+    const crystalCount = storm || mars ? 0 : tier === "high" ? 120 : 56;
     const spires = Array.from({ length: spireCount }, () => {
       const a = rand() * Math.PI * 2;
       const r = Math.max(50, keepClear + 6) + rand() * 330;
@@ -258,6 +260,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       sporeColor: colorC.clone().multiplyScalar(1.8),
       fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 1700 : box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
+      mars,
       forest: Boolean(box?.forest),
       ground,
     };
@@ -408,16 +411,18 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
       {!world.photo && <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />}
 
-      {!world.photo && !world.storm && (
+      {!world.photo && !world.storm && !world.mars && (
         <instancedMesh ref={spireMesh} args={[spireGeo, undefined, world.spires.length]} frustumCulled={false}>
           <meshStandardMaterial color={world.spireColor} roughness={0.92} flatShading />
         </instancedMesh>
       )}
-      {!world.photo && !world.storm && (
+      {!world.photo && !world.storm && !world.mars && (
         <instancedMesh ref={crystalMesh} args={[crystalGeo, undefined, world.crystals.length]} frustumCulled={false}>
           <meshBasicMaterial color={world.crystalColor} toneMapped={false} />
         </instancedMesh>
       )}
+
+      {world.mars && <MarsGround />}
 
       {world.storm && <StormMountains lightning={world.lightning} />}
 

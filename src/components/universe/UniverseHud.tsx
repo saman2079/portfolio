@@ -295,6 +295,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "Thunderstorm" by Ludovico Antonicelli (CC BY-NC)
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/mars-landscape-83f6f32b0a694f939cd16bf04f5565ef"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Mars landscape" by David Vacas Madrid
+        </a>
         {" — CC BY 4.0"}
       </p>
 
