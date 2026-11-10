@@ -33,6 +33,8 @@ void main() {
 const fragment = /* glsl */ `
 uniform float uTime;
 uniform vec3 uSun;
+uniform vec3 uDir[3];
+uniform float uAmt[3];
 varying vec3 vObj;
 varying vec3 vN;
 
@@ -73,15 +75,12 @@ void main() {
   float light = clamp(dot(normalize(vN), uSun), 0.0, 1.0) * 0.85 + 0.1;
   vec3 col = mix(vec3(0.04, 0.05, 0.07), vec3(0.3, 0.34, 0.41), n) * light;
 
-  // lightning: every cloud cell flashes now and then, lighting its own patch of the deck
-  vec3 g = d * 4.2;
-  vec3 cell = floor(g);
-  float h = hash(cell);
-  float slot = uTime * 0.14 + h * 9.0;
-  float s0 = fract(slot);
-  float on = step(0.55, hash(cell + floor(slot)));
-  float flash = exp(-s0 * 34.0) * on * smoothstep(0.9, 0.0, length(g - cell - 0.5));
-  vec3 glow = vec3(0.55, 0.72, 1.0) * flash * (0.6 + cover * 2.6);
+  // each bolt strike lights the cloud deck around it with a soft round glow
+  float flash = 0.0;
+  for (int i = 0; i < 3; i++) {
+    flash += uAmt[i] * pow(max(dot(normalize(vObj), uDir[i]), 0.0), 10.0);
+  }
+  vec3 glow = vec3(0.5, 0.68, 1.0) * flash * (0.35 + cover * 1.8) * (0.6 + n);
 
   float alpha = clamp(cover * 0.88 + flash * 0.5, 0.0, 1.0);
   gl_FragColor = vec4(col + glow, alpha);
@@ -133,7 +132,12 @@ export function StormShell({ radius, bolts = true }: { radius: number; bolts?: b
         transparent: true,
         depthWrite: false,
         side: DoubleSide,
-        uniforms: { uTime: { value: 0 }, uSun: { value: new Vector3(...SUN_POSITION).normalize() } },
+        uniforms: {
+          uTime: { value: 0 },
+          uSun: { value: new Vector3(...SUN_POSITION).normalize() },
+          uDir: { value: [new Vector3(0, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 0)] },
+          uAmt: { value: [0, 0, 0] },
+        },
       }),
     []
   );
@@ -185,11 +189,11 @@ export function StormShell({ radius, bolts = true }: { radius: number; bolts?: b
       if (!mesh || !mat) continue;
       if (t > b.next) {
         b.t0 = t;
-        b.next = t + 2.5 + Math.random() * 6;
+        b.next = t + 1.6 + Math.random() * 4.5;
         b.range = Math.floor(Math.random() * RANGES.length);
         // somewhere on the half of the planet that faces the camera
         work.up.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
-        b.dir.copy(work.cam).multiplyScalar(0.5).addScaledVector(work.up, 0.9).normalize();
+        b.dir.copy(work.cam).multiplyScalar(1.6).addScaledVector(work.up, 0.9).normalize();
         const rg = RANGES[b.range] as [number, number];
         (mat.uniforms["uRange"]!.value as Vector2).set(rg[0], rg[1]);
       }
@@ -197,19 +201,20 @@ export function StormShell({ radius, bolts = true }: { radius: number; bolts?: b
       const pulse = (x: number, a: number) => (x < 0 ? 0 : Math.exp(-x * a));
       const f = tt > 0.8 ? 0 : Math.max(pulse(tt, 9), 0.7 * pulse(tt - 0.15, 12));
       mat.uniforms["uFlash"]!.value = f;
+      (material.uniforms["uDir"]!.value as Vector3[])[i]!.copy(b.dir);
+      (material.uniforms["uAmt"]!.value as number[])[i] = f;
       mesh.visible = f > 0.01;
       if (!mesh.visible) continue;
-      // stand the card on the surface, growing outward, turned towards the camera
-      work.up.copy(b.dir);
-      work.right.crossVectors(work.up, work.cam).normalize();
-      work.fwd.crossVectors(work.right, work.up);
+      // lay the bolt on the cloud deck like a decal: flat on the surface, upright on screen
+      work.fwd.copy(b.dir);
+      work.up.copy(st.camera.up).addScaledVector(work.fwd, -st.camera.up.dot(work.fwd)).normalize();
+      work.right.crossVectors(work.up, work.fwd).normalize();
       work.m.makeBasis(work.right, work.up, work.fwd);
       mesh.quaternion.setFromRotationMatrix(work.m);
-      mesh.position.copy(b.dir).multiplyScalar(radius * 1.005);
+      mesh.position.copy(b.dir).multiplyScalar(radius * 1.02);
       const rg = RANGES[b.range] as [number, number];
-      const h = radius * 0.55;
+      const h = radius * 0.7;
       mesh.scale.set((((rg[1] - rg[0]) * 1024) / (0.74 * 512)) * h, h, 1);
-      mesh.translateY(h * 0.5);
     }
   });
   return (
