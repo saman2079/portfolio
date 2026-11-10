@@ -29,6 +29,7 @@ import { mulberry32 } from "@/lib/universe/random";
 import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
 import { Forest } from "./surface/Forest";
+import { StormMountains } from "./surface/StormMountains";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, stormFragment, terrainFragment, terrainVertex } from "./surface/shaders";
 
@@ -189,7 +190,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
     // spires and glowing crystals standing on the real terrain height
     const rand = mulberry32(Math.floor(cfg.seed * 100) + 9);
-    const spireCount = tier === "high" ? 70 : 34;
+    const spireCount = storm ? 0 : tier === "high" ? 70 : 34;
     const crystalCount = storm ? 0 : tier === "high" ? 120 : 56;
     const spires = Array.from({ length: spireCount }, () => {
       const a = rand() * Math.PI * 2;
@@ -222,7 +223,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     sporeGeo.setAttribute("position", new BufferAttribute(sporePos, 3));
 
     // rain: short slanted streaks that fall around the camera
-    const RAIN = tier === "high" ? 900 : 450;
+    const RAIN = tier === "high" ? 260 : 120;
     const rainBase = new Float32Array(RAIN * 3);
     for (let i = 0; i < RAIN; i++) {
       const a = rand() * Math.PI * 2;
@@ -233,7 +234,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     }
     const rainGeo = new BufferGeometry();
     rainGeo.setAttribute("position", new BufferAttribute(new Float32Array(RAIN * 6), 3));
-    const lightning = { next: 2.5, t0: -10 };
+    const lightning = { next: 2.5, t0: -10, flash: 0 };
 
     return {
       storm,
@@ -255,7 +256,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       spireColor: colorB.clone().multiplyScalar(0.42),
       crystalColor: colorC.clone().multiplyScalar(2.4),
       sporeColor: colorC.clone().multiplyScalar(1.8),
-      fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 460 : box ? (box.fog?.[1] ?? 5000) : 380),
+      fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 1700 : box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
       forest: Boolean(box?.forest),
       ground,
@@ -358,6 +359,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       const tt = t - L.t0;
       const pulse = (x: number, a: number) => (x < 0 ? 0 : Math.exp(-x * a));
       const flash = Math.max(pulse(tt, 9), 0.75 * pulse(tt - 0.17, 12), 0.45 * pulse(tt - 0.4, 8));
+      L.flash = flash;
       world.sky.uniforms["uFlash"]!.value = flash;
       world.sky.uniforms["uBoltOn"]!.value = tt < 0.7 ? 1 : 0;
       const h = world.terrain.uniforms["uHorizon"]!.value as Color;
@@ -412,20 +414,22 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
       {!world.photo && <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />}
 
-      {!world.photo && (
+      {!world.photo && !world.storm && (
         <instancedMesh ref={spireMesh} args={[spireGeo, undefined, world.spires.length]} frustumCulled={false}>
           <meshStandardMaterial color={world.spireColor} roughness={0.92} flatShading />
         </instancedMesh>
       )}
-      {!world.photo && (
+      {!world.photo && !world.storm && (
         <instancedMesh ref={crystalMesh} args={[crystalGeo, undefined, world.crystals.length]} frustumCulled={false}>
           <meshBasicMaterial color={world.crystalColor} toneMapped={false} />
         </instancedMesh>
       )}
 
+      {world.storm && <StormMountains lightning={world.lightning} />}
+
       {world.storm && (
         <lineSegments geometry={world.rainGeo} frustumCulled={false}>
-          <lineBasicMaterial color="#b4c6d8" transparent opacity={0.32} depthWrite={false} />
+          <lineBasicMaterial color="#b4c6d8" transparent opacity={0.2} depthWrite={false} />
         </lineSegments>
       )}
 
