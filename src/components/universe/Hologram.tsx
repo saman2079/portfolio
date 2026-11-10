@@ -194,12 +194,12 @@ function Orb({
           </group>
         </group>
       </group>
-      <mesh position={[0, -size * 1.6, 0]}>
+      <mesh position={[0, size * 1.85, 0]}>
         <planeGeometry args={[size * 3.4, size * 0.85]} />
         <meshBasicMaterial map={map} transparent toneMapped={false} depthWrite={false} side={DoubleSide} />
       </mesh>
       <mesh
-        position={[0, -size * 0.5, 0.002]}
+        position={[0, size * 0.1, 0.002]}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           if (e.delta > 6 || open.current < 0.8) return;

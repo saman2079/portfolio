@@ -7,6 +7,7 @@ import { AdditiveBlending, Color, DoubleSide, MathUtils, ShaderMaterial, Vector3
 import { SUN_POSITION, type DestinationConfig } from "@/lib/universe/destinations";
 import { universeStore, useUniverse } from "@/lib/store/universeStore";
 import { PlanetBody } from "./PlanetModel";
+import { StormShell } from "./StormShell";
 import {
   atmosphereFragment,
   atmosphereVertex,
@@ -139,6 +140,8 @@ export function Planet({ cfg, label, sublabel, interactive = true, sunlit = fals
           <PlanetBody kind={cfg.model} radius={cfg.radius} />
         </Suspense>
       </group>
+
+      {cfg.id === "lab" && <StormShell radius={cfg.radius} />}
 
       <mesh material={materials.atmo} scale={ATMOS_SCALE}>
         <sphereGeometry args={[cfg.radius, 48, 32]} />
