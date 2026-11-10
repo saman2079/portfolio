@@ -26,11 +26,13 @@ import { DESTINATIONS } from "@/lib/universe/destinations";
 import { mulberry32 } from "@/lib/universe/random";
 import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
+import { Forest } from "./surface/Forest";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, terrainFragment, terrainVertex } from "./surface/shaders";
 
 /** Planets whose sky (and far horizon) is a photographic skybox instead of the procedural dome. */
-const SKYBOX: Record<string, { url: string; haze: string; ground: [string, string, string] }> = {
+const SKYBOX: Record<string, { url: string; haze: string; ground: [string, string, string]; forest?: boolean; fog?: [number, number] }> = {
+  about: { url: "/models/forest/sky.jpg", haze: "#8a7878", ground: ["#2a3a18", "#586c26", "#9aa64a"], forest: true, fog: [70, 950] },
   experience: { url: "/models/alien-sky.jpg", haze: "#66463f", ground: ["#4a2219", "#8a4a34", "#c9875e"] },
   projects: { url: "/models/lava-sky.jpg", haze: "#6a6277", ground: ["#4a2218", "#9a4e30", "#e08a52"] },
 };
@@ -120,7 +122,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     let sky: ShaderMaterial | MeshBasicMaterial;
     let ground: ShaderMaterial | null = null;
     if (box) {
-      ground = new ShaderMaterial({
+      if (!box.forest) ground = new ShaderMaterial({
         vertexShader: groundVertex,
         fragmentShader: groundFragment,
         transparent: true,
@@ -199,8 +201,9 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       spireColor: colorB.clone().multiplyScalar(0.42),
       crystalColor: colorC.clone().multiplyScalar(2.4),
       sporeColor: colorC.clone().multiplyScalar(1.8),
-      fog: new Fog(horizon.clone(), box ? 4000 : 30, box ? 5000 : 380),
+      fog: new Fog(horizon.clone(), box ? (box.fog?.[0] ?? 4000) : 30, box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
+      forest: Boolean(box?.forest),
       ground,
     };
   }, [cfg, tier]);
@@ -299,6 +302,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       <mesh ref={dome} material={world.sky} frustumCulled={false} renderOrder={-10} scale={[-1, 1, 1]}>
         <sphereGeometry args={[1400, 32, 16]} />
       </mesh>
+
+      {world.forest && <Forest tier={tier} tint="#c9bcae" />}
 
       {world.ground && (
         <mesh material={world.ground} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} frustumCulled={false} renderOrder={-5}>

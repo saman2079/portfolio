@@ -277,6 +277,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "Alien Terrain 05 HDRI" by Giimann
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/landscape-forest-mountains-94809d21d7aa4cfe9b658a111b35a42c"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "landscape forest &amp; mountains" by dasy444
+        </a>
         {" — CC BY 4.0"}
       </p>
 

@@ -72,6 +72,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Alien Terrain 05 HDRI" by Giimann — CC BY 4.0
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/landscape-forest-mountains-94809d21d7aa4cfe9b658a111b35a42c"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "landscape forest & mountains" by dasy444 — CC BY 4.0 (textures repacked)
+          </a>
         </p>
 
         <div className="flex items-center gap-5">
