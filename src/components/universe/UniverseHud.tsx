@@ -297,12 +297,12 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         </a>
         {" · "}
         <a
-          href="https://sketchfab.com/3d-models/mars-landscape-83f6f32b0a694f939cd16bf04f5565ef"
+          href="https://sketchfab.com/3d-models/canyon-landscape-c395e9eb54ba4f40820ccfb98d3c2832"
           target="_blank"
           rel="noreferrer noopener"
           className="hover:text-paper-300"
         >
-          "Mars landscape" by David Vacas Madrid
+          "Canyon Landscape" by Šimon Ustal
         </a>
         {" — CC BY 4.0"}
       </p>

@@ -94,13 +94,13 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           </a>
           {" · "}
           <a
-            href="https://sketchfab.com/3d-models/mars-landscape-83f6f32b0a694f939cd16bf04f5565ef"
+            href="https://sketchfab.com/3d-models/canyon-landscape-c395e9eb54ba4f40820ccfb98d3c2832"
             target="_blank"
             rel="noreferrer noopener"
             dir="ltr"
             className="underline-offset-2 hover:underline"
           >
-            3D model "Mars landscape" by David Vacas Madrid — CC BY 4.0
+            3D model "Canyon Landscape" by Šimon Ustal — CC BY 4.0
           </a>
         </p>
 

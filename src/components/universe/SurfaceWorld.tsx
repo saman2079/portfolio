@@ -30,7 +30,7 @@ import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
 import { Forest } from "./surface/Forest";
 import { StormMountains } from "./surface/StormMountains";
-import { MarsGround } from "./surface/MarsGround";
+import { CanyonGround } from "./surface/CanyonGround";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, stormFragment, terrainFragment, terrainVertex } from "./surface/shaders";
 
@@ -261,6 +261,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 1700 : box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
       mars,
+      hazeHex: `#${horizon.getHexString()}`,
       forest: Boolean(box?.forest),
       ground,
     };
@@ -409,7 +410,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         </mesh>
       )}
 
-      {!world.photo && <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />}
+      {!world.photo && !world.mars && <mesh geometry={world.geometry} material={world.terrain} frustumCulled={false} />}
 
       {!world.photo && !world.storm && !world.mars && (
         <instancedMesh ref={spireMesh} args={[spireGeo, undefined, world.spires.length]} frustumCulled={false}>
@@ -422,7 +423,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         </instancedMesh>
       )}
 
-      {world.mars && <MarsGround />}
+      {world.mars && <CanyonGround haze={world.hazeHex} />}
 
       {world.storm && <StormMountains lightning={world.lightning} />}
 
@@ -432,7 +433,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         </points>
       )}
 
-      <points ref={spores} geometry={world.sporeGeo} frustumCulled={false} visible={!world.photo && !world.storm}>
+      <points ref={spores} geometry={world.sporeGeo} frustumCulled={false} visible={!world.photo && !world.storm && !world.mars}>
         <pointsMaterial
           color={world.sporeColor}
           size={0.16}
