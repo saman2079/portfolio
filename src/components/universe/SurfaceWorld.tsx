@@ -32,6 +32,7 @@ import { skyFragment, skyVertex, terrainFragment, terrainVertex } from "./surfac
 /** Planets whose sky (and far horizon) is a photographic skybox instead of the procedural dome. */
 const SKYBOX: Record<string, { url: string; haze: string; ground: [string, string, string] }> = {
   experience: { url: "/models/alien-sky.jpg", haze: "#66463f", ground: ["#4a2219", "#8a4a34", "#c9875e"] },
+  projects: { url: "/models/lava-sky.jpg", haze: "#6a6277", ground: ["#4a2218", "#9a4e30", "#e08a52"] },
 };
 
 /**

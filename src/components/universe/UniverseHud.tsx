@@ -268,6 +268,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "Landscape of an alien planet (Skybox)" by Jungle Jim
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/alien-terrain-05-hdri-7ba0da88576d4f4592beaaa0e9e3ff2d"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Alien Terrain 05 HDRI" by Giimann
+        </a>
         {" — CC BY 4.0"}
       </p>
 

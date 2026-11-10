@@ -62,6 +62,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Landscape of an alien planet (Skybox)" by Jungle Jim — CC BY 4.0
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/alien-terrain-05-hdri-7ba0da88576d4f4592beaaa0e9e3ff2d"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Alien Terrain 05 HDRI" by Giimann — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

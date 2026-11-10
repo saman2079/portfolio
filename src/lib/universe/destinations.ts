@@ -141,3 +141,14 @@ export const HORIZON_PLANET: DestinationConfig = {
   spin: 0.006,
   seed: 12.2,
 };
+
+/**
+ * On a narrow (phone) screen the horizontal field of view is small, so planets standing on
+ * alternate sides of the route land on top of each other. Push them further apart sideways
+ * and vertically; the flight path, asteroids and docking all read these positions.
+ */
+if (typeof window !== "undefined" && window.innerWidth / Math.max(1, window.innerHeight) < 0.8) {
+  for (const d of DESTINATIONS) {
+    d.position = [d.position[0] * 1.7, d.position[1] * 1.5 + (d.position[0] < 0 ? 2 : -2), d.position[2]];
+  }
+}
