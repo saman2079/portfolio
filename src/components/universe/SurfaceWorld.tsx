@@ -30,7 +30,7 @@ import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
 import { Forest } from "./surface/Forest";
 import { StormMountains } from "./surface/StormMountains";
-import { CanyonGround } from "./surface/CanyonGround";
+import { ScanGround, type ScanConfig } from "./surface/ScanGround";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
 import { skyFragment, skyVertex, stormFragment, terrainFragment, terrainVertex } from "./surface/shaders";
 
@@ -68,6 +68,12 @@ const groundFragment = /* glsl */ `
     #include <colorspace_fragment>
   }
 `;
+
+/** Planets whose whole ground is a scanned terrain model (see ScanGround). */
+const SCAN: Record<string, ScanConfig> = {
+  contact: { dir: "canyon", scale: 0.55, vscale: 0.55, yaw: -Math.PI / 2, fog: 0.0125, wall: [[0.46, 0.2, 0.12], [0.8, 0.44, 0.27]] },
+  skills: { dir: "crater", scale: 4, vscale: 2.4, yaw: Math.PI / 2, fog: 0.011, wall: [[0.5, 0.3, 0.2], [0.82, 0.56, 0.36]] },
+};
 
 /** Textures of the thunderstorm world (cloud deck, rock detail, lightning bolts). */
 function stormTex(file: string) {
@@ -114,7 +120,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const box = SKYBOX[cfg.id];
     // the lab sits under a thunderstorm (textures from the "Thunderstorm" model)
     const storm = cfg.id === "lab";
-    const mars = cfg.id === "contact";
+    const scan = SCAN[cfg.id];
+    const mars = Boolean(scan);
     const colorA = new Color(storm ? "#141b24" : mars ? "#6a3a22" : box ? box.ground[0] : cfg.colors[0]);
     const colorB = new Color(storm ? "#4a5866" : mars ? "#a86a40" : box ? box.ground[1] : cfg.colors[1]);
     const colorC = new Color(storm ? "#a9bccd" : mars ? "#d8a878" : box ? box.ground[2] : cfg.colors[2]);
@@ -261,6 +268,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 1700 : box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
       mars,
+      scan,
       hazeHex: `#${horizon.getHexString()}`,
       forest: Boolean(box?.forest),
       ground,
@@ -423,7 +431,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         </instancedMesh>
       )}
 
-      {world.mars && <CanyonGround haze={world.hazeHex} />}
+      {world.scan && <ScanGround haze={world.hazeHex} cfg={world.scan} />}
 
       {world.storm && <StormMountains lightning={world.lightning} />}
 

@@ -102,6 +102,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "Canyon Landscape" by Šimon Ustal — CC BY 4.0
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/crater-city-terrain-0bdacc08da824abda64701698dd5cdd1"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Crater City - Terrain" by artfromheath — CC BY 4.0
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

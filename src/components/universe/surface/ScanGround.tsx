@@ -14,11 +14,21 @@ import {
 } from "three";
 
 /**
- * The whole ground of the Contact planet: "Canyon Landscape" by Šimon Ustal (CC BY 4.0), a river
- * canyon of 780 x 780 units thinned from 275k to 34k vertices. The ship lands on the flat floor of
- * the canyon; the middle is levelled for the landing pad and distance fog hides the model's edges.
+ * The whole ground of a planet, taken from a scanned terrain model thinned to ~35k vertices:
+ *  - contact: "Canyon Landscape" by Šimon Ustal (CC BY 4.0), a river canyon
+ *  - skills:  "Crater City - Terrain" by artfromheath (CC BY 4.0), layered eroded mesas
+ * The ship lands on a flat spot chosen offline; the middle is levelled for the landing pad and
+ * distance fog hides the model's edges.
  */
-const SCALE = 0.55;
+export interface ScanConfig {
+  dir: string;
+  scale: number;
+  vscale: number;
+  /** radians; turns the model so its nearest edge ends up behind the pilot */
+  yaw: number;
+  fog: number;
+  wall: [[number, number, number], [number, number, number]];
+}
 const SUN = new Vector3(0.5, 0.6, -0.4).normalize();
 
 const vertex = /* glsl */ `
@@ -38,6 +48,8 @@ uniform sampler2D uMap;
 uniform vec3 uSun;
 uniform vec3 uHaze;
 uniform float uFog;
+uniform vec3 uWallA;
+uniform vec3 uWallB;
 varying vec2 vUv;
 varying vec3 vN;
 varying vec3 vWorld;
@@ -56,7 +68,7 @@ void main() {
   // the painted map is a top-down view: on steep walls it smears, so walls get banded rock instead
   float slope = 1.0 - clamp(N.y, 0.0, 1.0);
   float strata = 0.5 + 0.5 * sin(vWorld.y * 0.9 + n2(vWorld.xz * 0.05) * 6.0);
-  vec3 wall = mix(vec3(0.46, 0.2, 0.12), vec3(0.8, 0.44, 0.27), strata);
+  vec3 wall = mix(uWallA, uWallB, strata);
   vec3 c = mix(top * 1.15, wall, smoothstep(0.16, 0.42, slope));
   // fine grain so the ground keeps detail close up
   c *= 0.84 + 0.2 * n2(vWorld.xz * 0.7) + 0.12 * n2(vWorld.xz * 3.1);
@@ -69,7 +81,7 @@ void main() {
 }
 `;
 
-export function CanyonGround({ haze }: { haze: string }) {
+export function ScanGround({ haze, cfg }: { haze: string; cfg: ScanConfig }) {
   const root = useRef<Group>(null);
 
   useEffect(() => {
@@ -78,7 +90,7 @@ export function CanyonGround({ haze }: { haze: string }) {
     let cancelled = false;
     let mesh: Mesh | null = null;
     (async () => {
-      const buf = await fetch("/models/canyon/canyon.bin").then((r) => r.arrayBuffer());
+      const buf = await fetch(`/models/${cfg.dir}/${cfg.dir}.bin`).then((r) => r.arrayBuffer());
       if (cancelled) return;
       const hl = new DataView(buf).getUint32(0, true);
       const m = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, hl))) as { v: number; i: number };
@@ -91,9 +103,11 @@ export function CanyonGround({ haze }: { haze: string }) {
 
       // level the landing site (the model's floor is almost flat there, this makes it exact)
       for (let i = 0; i < m.v; i++) {
-        const r = Math.hypot(pos[i * 3] as number, pos[i * 3 + 2] as number) * SCALE;
+        const r = Math.hypot(pos[i * 3] as number, pos[i * 3 + 2] as number) * cfg.scale;
         const t = Math.min(1, Math.max(0, (r - 18) / 30));
-        pos[i * 3 + 1] = (pos[i * 3 + 1] as number) * (t * t * (3 - 2 * t));
+        pos[i * 3 + 1] = (pos[i * 3 + 1] as number) * (t * t * (3 - 2 * t)) * cfg.vscale;
+        pos[i * 3] = (pos[i * 3] as number) * cfg.scale;
+        pos[i * 3 + 2] = (pos[i * 3 + 2] as number) * cfg.scale;
       }
       const g = new BufferGeometry();
       g.setAttribute("position", new BufferAttribute(pos, 3));
@@ -101,7 +115,7 @@ export function CanyonGround({ haze }: { haze: string }) {
       g.setIndex(new BufferAttribute(idx, 1));
       g.computeVertexNormals();
 
-      const tex = new TextureLoader().load("/models/canyon/canyon.jpg");
+      const tex = new TextureLoader().load(`/models/${cfg.dir}/${cfg.dir}.jpg`);
       tex.colorSpace = SRGBColorSpace;
       tex.anisotropy = 8;
       const mat = new ShaderMaterial({
@@ -111,13 +125,14 @@ export function CanyonGround({ haze }: { haze: string }) {
           uMap: { value: tex },
           uSun: { value: SUN },
           uHaze: { value: new Color(haze) },
-          uFog: { value: 0.0125 },
+          uFog: { value: cfg.fog },
+          uWallA: { value: new Vector3(...cfg.wall[0]) },
+          uWallB: { value: new Vector3(...cfg.wall[1]) },
         },
       });
       mesh = new Mesh(g, mat);
-      mesh.scale.setScalar(SCALE);
       // turn the canyon so the nearest edge of the model is behind the pilot
-      mesh.rotation.y = -Math.PI / 2;
+      mesh.rotation.y = cfg.yaw;
       mesh.frustumCulled = false;
       group.add(mesh);
     })().catch(() => undefined);
@@ -131,7 +146,7 @@ export function CanyonGround({ haze }: { haze: string }) {
         mat.dispose();
       }
     };
-  }, [haze]);
+  }, [haze, cfg]);
 
   return <group ref={root} />;
 }

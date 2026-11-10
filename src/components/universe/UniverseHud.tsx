@@ -304,6 +304,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "Canyon Landscape" by Šimon Ustal
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/crater-city-terrain-0bdacc08da824abda64701698dd5cdd1"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Crater City - Terrain" by artfromheath
+        </a>
         {" — CC BY 4.0"}
       </p>
 
