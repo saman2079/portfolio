@@ -82,6 +82,16 @@ export function Footer({ t }: { lang: Locale; t: Dictionary }) {
           >
             3D model "landscape forest & mountains" by dasy444 — CC BY 4.0 (textures repacked)
           </a>
+          {" · "}
+          <a
+            href="https://sketchfab.com/3d-models/thunderstorm-4d5a048fec5643aebfeb9dc10297f795"
+            target="_blank"
+            rel="noreferrer noopener"
+            dir="ltr"
+            className="underline-offset-2 hover:underline"
+          >
+            3D model "Thunderstorm" by Ludovico Antonicelli — CC BY-NC 4.0 (textures used, non-commercial)
+          </a>
         </p>
 
         <div className="flex items-center gap-5">

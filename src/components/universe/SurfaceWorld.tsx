@@ -17,6 +17,8 @@ import {
   Object3D,
   OctahedronGeometry,
   Points,
+  RepeatWrapping,
+  Vector2,
   ShaderMaterial,
   Vector3,
   type Group,
@@ -28,7 +30,7 @@ import { flightLive, flightStore } from "@/lib/store/flightStore";
 import { BaseBuilder } from "./lab/BaseBuilder";
 import { Forest } from "./surface/Forest";
 import { EYE, buildTerrain, heightAt, paramsFor } from "./surface/terrain";
-import { skyFragment, skyVertex, terrainFragment, terrainVertex } from "./surface/shaders";
+import { skyFragment, skyVertex, stormFragment, terrainFragment, terrainVertex } from "./surface/shaders";
 
 /** Planets whose sky (and far horizon) is a photographic skybox instead of the procedural dome. */
 const SKYBOX: Record<string, { url: string; haze: string; ground: [string, string, string]; forest?: boolean; fog?: [number, number] }> = {
@@ -65,6 +67,15 @@ const groundFragment = /* glsl */ `
   }
 `;
 
+/** Textures of the thunderstorm world (cloud deck, rock detail, lightning bolts). */
+function stormTex(file: string) {
+  const t = new TextureLoader().load(`/models/storm/${file}`);
+  t.colorSpace = SRGBColorSpace;
+  t.wrapS = t.wrapT = RepeatWrapping;
+  t.anisotropy = 4;
+  return t;
+}
+
 const SIZE = 900;
 const SPORES = 320;
 
@@ -99,10 +110,13 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const geometry = buildTerrain(params, SIZE, tier === "high" ? 200 : 120);
 
     const box = SKYBOX[cfg.id];
-    const colorA = new Color(box ? box.ground[0] : cfg.colors[0]);
-    const colorB = new Color(box ? box.ground[1] : cfg.colors[1]);
-    const colorC = new Color(box ? box.ground[2] : cfg.colors[2]);
-    const horizon = box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
+    // the lab sits under a thunderstorm (textures from the "Thunderstorm" model)
+    const storm = cfg.id === "lab";
+    const colorA = new Color(storm ? "#0a0c10" : box ? box.ground[0] : cfg.colors[0]);
+    const colorB = new Color(storm ? "#262b33" : box ? box.ground[1] : cfg.colors[1]);
+    const colorC = new Color(storm ? "#5c6672" : box ? box.ground[2] : cfg.colors[2]);
+    const horizon = storm ? new Color("#1d252e") : box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
+    const stormBase = horizon.clone();
     const zenith = colorA.clone().multiplyScalar(0.9);
     const sun = new Vector3(cfg.light[0] * 0.8, Math.min(0.5, Math.max(0.22, cfg.light[1])), -(Math.abs(cfg.light[2]) + 0.4)).normalize();
 
@@ -116,8 +130,10 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         uHorizon: { value: horizon },
         uSun: { value: sun },
         uAmp: { value: params.amp },
-        uFog: { value: 0.0075 },
+        uFog: { value: storm ? 0.006 : 0.0075 },
+        ...(storm ? { uTex: { value: stormTex("rock.jpg") } } : {}),
       },
+      ...(storm ? { defines: { USE_TEX: "" } } : {}),
     });
     let sky: ShaderMaterial | MeshBasicMaterial;
     let ground: ShaderMaterial | null = null;
@@ -139,6 +155,24 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         m.needsUpdate = true;
       });
       sky = m;
+    } else if (storm) {
+      sky = new ShaderMaterial({
+        vertexShader: skyVertex,
+        fragmentShader: stormFragment,
+        side: BackSide,
+        depthWrite: false,
+        uniforms: {
+          uCloud: { value: stormTex("cloud.jpg") },
+          uBolt: { value: stormTex("bolts.webp") },
+          uHorizon: { value: horizon.clone().multiplyScalar(0.8) },
+          uZenith: { value: new Color("#050709") },
+          uTime: { value: 0 },
+          uFlash: { value: 0 },
+          uBoltOn: { value: 0 },
+          uAz: { value: 0 },
+          uRange: { value: new Vector2(0.06, 0.26) },
+        },
+      });
     } else sky = new ShaderMaterial({
       vertexShader: skyVertex,
       fragmentShader: skyFragment,
@@ -156,7 +190,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     // spires and glowing crystals standing on the real terrain height
     const rand = mulberry32(Math.floor(cfg.seed * 100) + 9);
     const spireCount = tier === "high" ? 70 : 34;
-    const crystalCount = tier === "high" ? 120 : 56;
+    const crystalCount = storm ? 0 : tier === "high" ? 120 : 56;
     const spires = Array.from({ length: spireCount }, () => {
       const a = rand() * Math.PI * 2;
       const r = Math.max(50, keepClear + 6) + rand() * 330;
@@ -187,7 +221,27 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const sporeGeo = new BufferGeometry();
     sporeGeo.setAttribute("position", new BufferAttribute(sporePos, 3));
 
+    // rain: short slanted streaks that fall around the camera
+    const RAIN = tier === "high" ? 900 : 450;
+    const rainBase = new Float32Array(RAIN * 3);
+    for (let i = 0; i < RAIN; i++) {
+      const a = rand() * Math.PI * 2;
+      const rr = 2.5 + Math.sqrt(rand()) * 42;
+      rainBase[i * 3] = Math.cos(a) * rr;
+      rainBase[i * 3 + 1] = rand() * 26;
+      rainBase[i * 3 + 2] = Math.sin(a) * rr;
+    }
+    const rainGeo = new BufferGeometry();
+    rainGeo.setAttribute("position", new BufferAttribute(new Float32Array(RAIN * 6), 3));
+    const lightning = { next: 2.5, t0: -10 };
+
     return {
+      storm,
+      stormBase,
+      lightning,
+      RAIN,
+      rainBase,
+      rainGeo,
       params,
       geometry,
       terrain,
@@ -201,7 +255,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       spireColor: colorB.clone().multiplyScalar(0.42),
       crystalColor: colorC.clone().multiplyScalar(2.4),
       sporeColor: colorC.clone().multiplyScalar(1.8),
-      fog: new Fog(horizon.clone(), box ? (box.fog?.[0] ?? 4000) : 30, box ? (box.fog?.[1] ?? 5000) : 380),
+      fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 460 : box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
       forest: Boolean(box?.forest),
       ground,
@@ -260,6 +314,11 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       world.sky.dispose();
       world.ground?.dispose();
       world.sporeGeo.dispose();
+      world.rainGeo.dispose();
+      if (world.storm) {
+        for (const u of Object.values(world.terrain.uniforms)) if (u.value && (u.value as { isTexture?: boolean }).isTexture) (u.value as { dispose(): void }).dispose();
+        if (world.sky instanceof ShaderMaterial) for (const u of Object.values(world.sky.uniforms)) if (u.value && (u.value as { isTexture?: boolean }).isTexture) (u.value as { dispose(): void }).dispose();
+      }
       spireGeo.dispose();
       crystalGeo.dispose();
     },
@@ -283,6 +342,46 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     if (world.sky instanceof ShaderMaterial) {
       const su = world.sky.uniforms["uTime"];
       if (su) su.value = t;
+    }
+    if (world.storm && world.sky instanceof ShaderMaterial) {
+      // lightning: a bolt every few seconds, flickering twice, lighting the clouds, haze and ground
+      const L = world.lightning;
+      if (t > L.next) {
+        L.t0 = t;
+        L.next = t + 3.5 + Math.random() * 7;
+        const k = Math.floor(Math.random() * 4);
+        const ranges: [number, number][] = [[0.06, 0.26], [0.33, 0.4], [0.5, 0.64], [0.8, 0.87]];
+        const rg = ranges[k] as [number, number];
+        (world.sky.uniforms["uRange"]!.value as Vector2).set(rg[0], rg[1]);
+        world.sky.uniforms["uAz"]!.value = Math.random() * Math.PI * 2;
+      }
+      const tt = t - L.t0;
+      const pulse = (x: number, a: number) => (x < 0 ? 0 : Math.exp(-x * a));
+      const flash = Math.max(pulse(tt, 9), 0.75 * pulse(tt - 0.17, 12), 0.45 * pulse(tt - 0.4, 8));
+      world.sky.uniforms["uFlash"]!.value = flash;
+      world.sky.uniforms["uBoltOn"]!.value = tt < 0.7 ? 1 : 0;
+      const h = world.terrain.uniforms["uHorizon"]!.value as Color;
+      h.copy(world.stormBase).multiplyScalar(1 + flash * 4.5);
+      world.fog.color.copy(h);
+      // rain
+      const rp = world.rainGeo.getAttribute("position");
+      const arr = rp.array as Float32Array;
+      const cx = camPos.x;
+      const cz = camPos.z;
+      for (let i = 0; i < world.RAIN; i++) {
+        const b = i * 3;
+        const y = 26 - ((((world.rainBase[b + 1] ?? 0) + t * 30) % 26) + 26) % 26;
+        const x = cx + (world.rainBase[b] ?? 0) - y * 0.12;
+        const z = cz + (world.rainBase[b + 2] ?? 0);
+        const o = i * 6;
+        arr[o] = x;
+        arr[o + 1] = y;
+        arr[o + 2] = z;
+        arr[o + 3] = x - 0.16;
+        arr[o + 4] = y + 1.3;
+        arr[o + 5] = z;
+      }
+      rp.needsUpdate = true;
     }
     // drifting spores
     const p = world.sporePos;
@@ -324,7 +423,13 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         </instancedMesh>
       )}
 
-      <points ref={spores} geometry={world.sporeGeo} frustumCulled={false} visible={!world.photo}>
+      {world.storm && (
+        <lineSegments geometry={world.rainGeo} frustumCulled={false}>
+          <lineBasicMaterial color="#b4c6d8" transparent opacity={0.32} depthWrite={false} />
+        </lineSegments>
+      )}
+
+      <points ref={spores} geometry={world.sporeGeo} frustumCulled={false} visible={!world.photo && !world.storm}>
         <pointsMaterial
           color={world.sporeColor}
           size={0.16}

@@ -286,6 +286,15 @@ export function UniverseHud({ lang, name, role, tagline }: Props) {
         >
           "landscape forest &amp; mountains" by dasy444
         </a>
+        {" · "}
+        <a
+          href="https://sketchfab.com/3d-models/thunderstorm-4d5a048fec5643aebfeb9dc10297f795"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:text-paper-300"
+        >
+          "Thunderstorm" by Ludovico Antonicelli (CC BY-NC)
+        </a>
         {" — CC BY 4.0"}
       </p>
 
