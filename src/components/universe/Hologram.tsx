@@ -260,7 +260,7 @@ export function Hologram() {
 
   const rx = portrait ? 0.13 : 0.27;
   const ry = portrait ? 0.05 : 0.06;
-  const size = portrait ? 0.02 : 0.033;
+  const size = portrait ? 0.022 : 0.04;
   const items = useMemo(
     () =>
       DESTINATIONS.map((d, i) => {

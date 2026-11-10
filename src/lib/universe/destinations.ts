@@ -125,6 +125,9 @@ export const DESTINATIONS: DestinationConfig[] = [
   },
 ];
 
+/** Planets are drawn 25% larger than their authored radii (docking distance follows the radius). */
+for (const d of DESTINATIONS) d.radius *= 1.25;
+
 /** Large decorative planet on the right of the opening view (not a destination). */
 export const HORIZON_PLANET: DestinationConfig = {
   id: "projects",
