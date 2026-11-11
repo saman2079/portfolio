@@ -27,8 +27,10 @@ uniform vec3 uHorizon;
 uniform vec3 uSun;
 uniform float uAmp;
 uniform float uFog;
+uniform float uAmb;
 #ifdef USE_TEX
 uniform sampler2D uTex;
+uniform sampler2D uNorm;
 #endif
 varying vec3 vWorld;
 varying vec3 vN;
@@ -46,12 +48,22 @@ void main() {
   col = mix(col, uA * 0.55, smoothstep(0.12, 0.5, slope));
   col *= 0.78 + m * 0.5;
 #ifdef USE_TEX
-  // photographic rock detail from the Thunderstorm model, tiled at two scales
-  float rt = texture2D(uTex, vWorld.xz * 0.011).r * 0.65 + texture2D(uTex, vWorld.xz * 0.063 + 0.37).r * 0.35;
-  col *= 0.5 + rt * 1.9;
+  // photographic rock detail from the Thunderstorm model (mirror-tiled so no seams show):
+  // two broad scales everywhere, plus a fine scale that fades in close to the camera
+  vec2 w2 = vWorld.xz * 0.063 + 0.37;
+  vec2 w3 = vWorld.xz * 0.34 + 0.11;
+  float nearW = 1.0 - smoothstep(25.0, 110.0, vDist);
+  float rt = texture2D(uTex, vWorld.xz * 0.011).r * 0.5 + texture2D(uTex, w2).r * 0.5;
+  float fineT = texture2D(uTex, w3).r;
+  col *= 0.42 + rt * 1.16;
+  col *= mix(1.0, 0.62 + fineT * 0.76, nearW);
+  // relief lighting from the model's normal map
+  vec3 nm = texture2D(uNorm, w2).xyz * 2.0 - 1.0;
+  vec3 nf = texture2D(uNorm, w3).xyz * 2.0 - 1.0;
+  n = normalize(n + vec3(nm.x, 0.0, -nm.y) * 0.6 + vec3(nf.x, 0.0, -nf.y) * 0.55 * nearW);
 #endif
   float diff = max(dot(n, uSun), 0.0);
-  vec3 amb = mix(uA, uHorizon, 0.55) * 0.5;
+  vec3 amb = mix(uA, uHorizon, 0.55) * uAmb;
   vec3 lit = col * (amb + diff * vec3(1.0, 0.95, 0.88) * 1.3);
   float grain = step(0.985, vnoise(vec3(vWorld.xz * 14.0, 7.0)));
   lit += uC * grain * (0.25 + diff) * 0.8;
@@ -101,6 +113,7 @@ uniform sampler2D uCloud;
 uniform sampler2D uBolt;
 uniform vec3 uHorizon;
 uniform vec3 uZenith;
+uniform vec3 uSun;
 uniform float uTime;
 uniform float uFlash;
 uniform float uBoltOn;
@@ -114,9 +127,13 @@ void main() {
   vec2 p = d.xz / (d.y + 0.22);
   float c1 = texture2D(uCloud, p * 0.42 + vec2(uTime * 0.004, 0.0)).r;
   float c2 = texture2D(uCloud, p * 0.95 + vec2(-uTime * 0.009, 0.31)).r;
-  float cl = pow(clamp(mix(c1, c2, 0.45), 0.0, 1.0), 1.35);
+  float cl = pow(clamp(mix(c1, c2, 0.45), 0.0, 1.0), 1.5);
   float fade = smoothstep(0.0, 0.3, d.y);
   col = mix(col, mix(uZenith * 0.5, uHorizon * 2.4 + 0.02, cl), 0.9 * fade);
+  // atmosphere: a luminous haze lying on the horizon, and a cold sun glimmering through the cloud
+  col += uHorizon * pow(1.0 - t, 5.0) * 0.8;
+  float sd = max(dot(d, uSun), 0.0);
+  col += vec3(0.5, 0.68, 1.0) * (pow(sd, 28.0) * 0.55 + pow(sd, 5.0) * 0.1) * (1.0 - 0.8 * cl) * fade;
   // lightning lights the cloud deck from inside
   col += vec3(0.55, 0.68, 1.0) * uFlash * (0.12 + 0.9 * cl) * (0.35 + 0.65 * fade) * 1.6;
   // one visible bolt

@@ -17,6 +17,8 @@ import {
   Object3D,
   OctahedronGeometry,
   Points,
+  MirroredRepeatWrapping,
+  NoColorSpace,
   RepeatWrapping,
   Vector2,
   ShaderMaterial,
@@ -76,11 +78,13 @@ const SCAN: Record<string, ScanConfig> = {
 };
 
 /** Textures of the thunderstorm world (cloud deck, rock detail, lightning bolts). */
-function stormTex(file: string) {
+function stormTex(file: string, aniso: number, opts: { mirror?: boolean; data?: boolean } = {}) {
   const t = new TextureLoader().load(`/models/storm/${file}`);
-  t.colorSpace = SRGBColorSpace;
-  t.wrapS = t.wrapT = RepeatWrapping;
-  t.anisotropy = 4;
+  // "data" textures (detail, normals, clouds) hold plain values, not colours: sampled as-is they
+  // are not darkened by the sRGB decode, which was a big part of the lab looking so dark
+  t.colorSpace = opts.data ? NoColorSpace : SRGBColorSpace;
+  t.wrapS = t.wrapT = opts.mirror ? MirroredRepeatWrapping : RepeatWrapping;
+  t.anisotropy = aniso;
   return t;
 }
 
@@ -114,6 +118,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
 
   const world = useMemo(() => {
     const params = paramsFor(cfg.seed, cfg.id);
+    const aniso = Math.min(12, gl.capabilities.getMaxAnisotropy());
     const keepClear = cfg.id === "lab" ? 52 : 0;
     const geometry = buildTerrain(params, SIZE, tier === "high" ? 200 : 120);
 
@@ -122,10 +127,10 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     const storm = cfg.id === "lab";
     const scan = SCAN[cfg.id];
     const mars = Boolean(scan);
-    const colorA = new Color(storm ? "#141b24" : mars ? "#6a3a22" : box ? box.ground[0] : cfg.colors[0]);
-    const colorB = new Color(storm ? "#4a5866" : mars ? "#a86a40" : box ? box.ground[1] : cfg.colors[1]);
-    const colorC = new Color(storm ? "#a9bccd" : mars ? "#d8a878" : box ? box.ground[2] : cfg.colors[2]);
-    const horizon = storm ? new Color("#222c38") : box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
+    const colorA = new Color(storm ? "#1f2a37" : mars ? "#6a3a22" : box ? box.ground[0] : cfg.colors[0]);
+    const colorB = new Color(storm ? "#66798c" : mars ? "#a86a40" : box ? box.ground[1] : cfg.colors[1]);
+    const colorC = new Color(storm ? "#c5d6e6" : mars ? "#d8a878" : box ? box.ground[2] : cfg.colors[2]);
+    const horizon = storm ? new Color("#34475b") : box ? new Color(box.haze) : new Color(cfg.atmosphere).lerp(colorC, 0.25).multiplyScalar(0.85);
     const stormBase = horizon.clone();
     const zenith = colorA.clone().multiplyScalar(0.9);
     const sun = new Vector3(cfg.light[0] * 0.8, Math.min(0.5, Math.max(0.22, cfg.light[1])), -(Math.abs(cfg.light[2]) + 0.4)).normalize();
@@ -141,7 +146,13 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         uSun: { value: sun },
         uAmp: { value: params.amp },
         uFog: { value: storm ? 0.006 : 0.0075 },
-        ...(storm ? { uTex: { value: stormTex("rock.jpg") } } : {}),
+        uAmb: { value: storm ? 1.15 : 0.5 },
+        ...(storm
+          ? {
+              uTex: { value: stormTex("ground.jpg", aniso, { mirror: true, data: true }) },
+              uNorm: { value: stormTex("groundn.jpg", aniso, { mirror: true, data: true }) },
+            }
+          : {}),
       },
       ...(storm ? { defines: { USE_TEX: "" } } : {}),
     });
@@ -172,10 +183,11 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         side: BackSide,
         depthWrite: false,
         uniforms: {
-          uCloud: { value: stormTex("cloud.jpg") },
-          uBolt: { value: stormTex("bolts.webp") },
-          uHorizon: { value: horizon.clone().multiplyScalar(0.8) },
-          uZenith: { value: new Color("#050709") },
+          uCloud: { value: stormTex("cloud.jpg", aniso, { data: true }) },
+          uBolt: { value: stormTex("bolts.webp", aniso) },
+          uHorizon: { value: horizon.clone() },
+          uZenith: { value: new Color("#0d1620") },
+          uSun: { value: sun },
           uTime: { value: 0 },
           uFlash: { value: 0 },
           uBoltOn: { value: 0 },
@@ -265,7 +277,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
       spireColor: colorB.clone().multiplyScalar(0.42),
       crystalColor: colorC.clone().multiplyScalar(2.4),
       sporeColor: colorC.clone().multiplyScalar(1.8),
-      fog: new Fog(horizon.clone(), storm ? 25 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 1700 : box ? (box.fog?.[1] ?? 5000) : 380),
+      fog: new Fog(horizon.clone(), storm ? 30 : box ? (box.fog?.[0] ?? 4000) : 30, storm ? 1000 : box ? (box.fog?.[1] ?? 5000) : 380),
       photo: Boolean(box),
       mars,
       scan,

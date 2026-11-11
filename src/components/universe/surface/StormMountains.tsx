@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
   BufferAttribute,
   BufferGeometry,
@@ -30,6 +30,7 @@ const sm = (a: number, b: number, x: number) => {
 };
 
 export function StormMountains({ lightning }: { lightning: { flash: number } }) {
+  const gl = useThree((st) => st.gl);
   const root = useRef<Group>(null);
   const mats = useRef<MeshBasicMaterial[]>([]);
 
@@ -79,16 +80,17 @@ export function StormMountains({ lightning }: { lightning: { flash: number } }) 
         const col = new Float32Array(m.v * 3);
         for (let i = 0; i < m.v; i++) {
           const l = Math.max(0, n.getX(i) * SUN.x + n.getY(i) * SUN.y + n.getZ(i) * SUN.z);
-          const s = 0.3 + 0.9 * l;
+          const s = 0.42 + 0.85 * l;
           col[i * 3] = s * 0.95;
           col[i * 3 + 1] = s * 1.02;
           col[i * 3 + 2] = s * 1.15;
         }
         g.setAttribute("color", new BufferAttribute(col, 3));
 
-        const t = loader.load(k === 0 ? "/models/storm/rock.jpg" : "/models/storm/rock2.jpg");
+        const t = loader.load(k === 0 ? "/models/storm/m1.jpg" : "/models/storm/m2.jpg");
         t.colorSpace = SRGBColorSpace;
         t.wrapS = t.wrapT = RepeatWrapping;
+        t.anisotropy = Math.min(12, gl.capabilities.getMaxAnisotropy());
         const mat = new MeshBasicMaterial({ map: t, vertexColors: true, side: DoubleSide });
         mats.current.push(mat);
         const mesh = new Mesh(g, mat);
@@ -108,11 +110,11 @@ export function StormMountains({ lightning }: { lightning: { flash: number } }) 
         m.geometry.dispose();
       }
     };
-  }, []);
+  }, [gl]);
 
   // the mountains flare up with each lightning strike
   useFrame(() => {
-    const k = 0.55 + lightning.flash * 3.2;
+    const k = 0.9 + lightning.flash * 3.2;
     for (const m of mats.current) m.color.setScalar(k);
   });
 
