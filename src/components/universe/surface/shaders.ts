@@ -51,8 +51,8 @@ void main() {
   // photographic rock detail from the Thunderstorm model (mirror-tiled so no seams show):
   // two broad scales everywhere, plus a fine scale that fades in close to the camera
   vec2 w2 = vWorld.xz * 0.063 + 0.37;
-  vec2 w3 = vWorld.xz * 0.34 + 0.11;
-  float nearW = 1.0 - smoothstep(25.0, 110.0, vDist);
+  vec2 w3 = vWorld.xz * 0.42 + 0.11;
+  float nearW = 1.0 - smoothstep(40.0, 190.0, vDist);
   float rt = texture2D(uTex, vWorld.xz * 0.011).r * 0.5 + texture2D(uTex, w2).r * 0.5;
   float fineT = texture2D(uTex, w3).r;
   col *= 0.42 + rt * 1.16;

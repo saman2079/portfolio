@@ -8,6 +8,8 @@ import {
   DoubleSide,
   Mesh,
   MeshBasicMaterial,
+  MirroredRepeatWrapping,
+  NoColorSpace,
   RepeatWrapping,
   SRGBColorSpace,
   TextureLoader,
@@ -40,6 +42,11 @@ export function StormMountains({ lightning }: { lightning: { flash: number } }) 
     let cancelled = false;
     const added: Mesh[] = [];
     const loader = new TextureLoader();
+    // fine rock grain multiplied over the baked maps, so the slopes stay sharp up close
+    const detail = loader.load("/models/storm/ground.jpg");
+    detail.colorSpace = NoColorSpace;
+    detail.wrapS = detail.wrapT = MirroredRepeatWrapping;
+    detail.anisotropy = Math.min(12, gl.capabilities.getMaxAnisotropy());
     (async () => {
       const buf = await fetch("/models/storm/mtn.bin").then((r) => r.arrayBuffer());
       if (cancelled) return;
@@ -92,6 +99,14 @@ export function StormMountains({ lightning }: { lightning: { flash: number } }) 
         t.wrapS = t.wrapT = RepeatWrapping;
         t.anisotropy = Math.min(12, gl.capabilities.getMaxAnisotropy());
         const mat = new MeshBasicMaterial({ map: t, vertexColors: true, side: DoubleSide });
+        mat.onBeforeCompile = (sh) => {
+          sh.uniforms["uDet"] = { value: detail };
+          sh.fragmentShader = "uniform sampler2D uDet;\n" + sh.fragmentShader.replace(
+            "#include <map_fragment>",
+            "#include <map_fragment>\n  diffuseColor.rgb *= 0.62 + texture2D(uDet, vMapUv * 13.0).r * 0.76;"
+          );
+        };
+        mat.customProgramCacheKey = () => "storm-mtn-detail";
         mats.current.push(mat);
         const mesh = new Mesh(g, mat);
         mesh.scale.setScalar(SCALE);
@@ -102,6 +117,7 @@ export function StormMountains({ lightning }: { lightning: { flash: number } }) 
     })().catch(() => undefined);
     return () => {
       cancelled = true;
+      detail.dispose();
       mats.current = [];
       for (const m of added) {
         group.remove(m);
