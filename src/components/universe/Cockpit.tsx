@@ -46,7 +46,7 @@ export function Cockpit({ onLoaded }: { onLoaded?: () => void }) {
   const root = useRef<Group>(null);
   // the cockpit is only the inside view: it folds away once the camera is out around the ship
   useFrame(() => {
-    if (root.current) root.current.visible = flightLive.view < 0.4;
+    if (root.current) root.current.visible = flightLive.view < 0.4 && flightLive.buildView < 0.3;
   });
 
   const { scene, glass, env } = useMemo(() => {

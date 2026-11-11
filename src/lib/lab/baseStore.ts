@@ -10,6 +10,13 @@ export const cellCenter = (gx: number, gz: number): [number, number] => [
   ORIGIN.z + (gz + 0.5) * CELL,
 ];
 
+/** Centre and radius of the base platform (surface-local x/z). */
+export const PLATFORM = { x: 3, z: -25, r: 32 };
+/** The pilot's eye is this far in front of the middle of the hull (ship space, +z is backwards). */
+export const PARK_LEN = 7.03;
+/** Where the parked ship's hull centre stands on the base map, and which way it faces (radians about +y). */
+export const parkSpot = (portrait: boolean) => (portrait ? { x: 0, z: -45, yaw: Math.PI / 2 } : { x: 17.5, z: -18, yaw: 0.5 });
+
 export interface Skill {
   name: string;
   level: number;

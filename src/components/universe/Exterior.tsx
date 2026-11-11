@@ -5,13 +5,17 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Color, DoubleSide, PMREMGenerator, type Group, type Material, type Mesh, type Texture } from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { flightLive } from "@/lib/store/flightStore";
+import { flightLive, flightStore } from "@/lib/store/flightStore";
+import { PARK_LEN, parkSpot } from "@/lib/lab/baseStore";
+import { EYE as GROUND_EYE } from "./surface/terrain";
 
 export const EXTERIOR_URL = "/models/exterior.glb";
 /** ship-space size: the model is about 1.04 million units long, this makes it ~19 long */
 export const EXTERIOR_SCALE = 1.8e-5;
 /** where the pilot sits inside the model, in the model's own units (the middle of its canopy window) */
 const EYE = [-133202, 532000, 60000] as const;
+/** the hull's lowest point is 1.7257 below the pilot's eye (ship space); this puts it on the ground when parked */
+const PARK_DROP = -GROUND_EYE + 1.7257 + 0.05;
 
 /**
  * "Space Vector Exploration, Interior Redesign" by ReiSakisaka (CC BY 4.0,
@@ -23,6 +27,8 @@ function ExteriorModel() {
   const gltf = useGLTF(EXTERIOR_URL);
   const gl = useThree((s) => s.gl);
   const group = useRef<Group>(null);
+  const park = useRef<Group>(null);
+  const size = useThree((s) => s.size);
 
   const { scene, env } = useMemo(() => {
     const pmrem = new PMREMGenerator(gl);
@@ -60,15 +66,32 @@ function ExteriorModel() {
   }, [gltf, gl]);
   useEffect(() => () => env.dispose(), [env]);
 
-  // visible only after the camera has started to leave the cockpit
+  // visible after the camera has started to leave the cockpit, or while parked on the base map
   useFrame(() => {
-    if (group.current) group.current.visible = flightLive.view > 0.12;
+    const p = flightLive.parkP;
+    if (group.current) group.current.visible = flightLive.view > 0.12 || p > 0.02;
+    const o = park.current;
+    if (!o) return;
+    // fly from the landing spot to the parking corner: a gentle arc, a slow turn and a little bank
+    const e = p * p * (3 - 2 * p);
+    if (e <= 0) {
+      o.position.set(0, 0, 0);
+      o.rotation.set(0, 0, 0);
+      return;
+    }
+    const sp = parkSpot(size.width / size.height < 0.8);
+    const ox = sp.x - PARK_LEN * Math.sin(sp.yaw);
+    const oz = sp.z - PARK_LEN * Math.cos(sp.yaw);
+    o.position.set(ox * e, PARK_DROP * e + Math.sin(Math.PI * e) * 4.5, oz * e);
+    o.rotation.set(0, sp.yaw * e, Math.sin(Math.PI * e) * 0.1);
   });
 
   return (
-    <group ref={group} scale={EXTERIOR_SCALE} rotation={[0, Math.PI, 0]} visible={false}>
-      <group position={[-EYE[0], -EYE[1], -EYE[2]]}>
-        <primitive object={scene} />
+    <group ref={park}>
+      <group ref={group} scale={EXTERIOR_SCALE} rotation={[0, Math.PI, 0]} visible={false}>
+        <group position={[-EYE[0], -EYE[1], -EYE[2]]}>
+          <primitive object={scene} />
+        </group>
       </group>
     </group>
   );
@@ -78,7 +101,8 @@ function ExteriorModel() {
 export function Exterior() {
   const [wanted, setWanted] = useState(false);
   useFrame(() => {
-    if (!wanted && flightLive.outside) setWanted(true);
+    // also fetched while landed on the Lab, so the ship is ready when the base builder opens
+    if (!wanted && (flightLive.outside || flightStore.get().landId === "lab")) setWanted(true);
   });
   return wanted ? (
     <Suspense fallback={null}>

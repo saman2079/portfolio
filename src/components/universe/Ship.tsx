@@ -216,8 +216,14 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
           document.documentElement.style.setProperty("--land-color", cfg.atmosphere);
           setLand("descending");
         }
-      } else if (cmd.type === "takeoff" && L.state === "landed" && !live.build) {
-        setLand("ascending");
+      } else if (cmd.type === "takeoff" && L.state === "landed") {
+        if (live.build || live.parkP > 0.03) {
+          // the ship is parked in a corner of the base map: bring it home first, then lift off
+          if (live.build) baseStore.setMode(false);
+          live.landCmd = cmd;
+        } else {
+          setLand("ascending");
+        }
       }
     }
 
@@ -271,6 +277,9 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
       L.flash += (0 - L.flash) * (1 - Math.exp(-dt * 3));
       if (L.flash < 0.004) L.flash = 0;
     }
+    // the ship flies to its parking corner while the base builder is open, and back when it closes
+    live.parkP += ((live.build ? 1 : 0) - live.parkP) * (1 - Math.exp(-dt * 1.7));
+    if (Math.abs(live.parkP - (live.build ? 1 : 0)) < 0.002) live.parkP = live.build ? 1 : 0;
     if (Math.abs(L.flash - L.shown) > 0.004) {
       L.shown = L.flash;
       document.documentElement.style.setProperty("--land-flash", L.flash.toFixed(3));

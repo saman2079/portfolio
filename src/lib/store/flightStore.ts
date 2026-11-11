@@ -45,6 +45,8 @@ export const flightLive = {
   build: false,
   /** 0..1 blend of the builder camera */
   buildView: 0,
+  /** 0..1: how far the ship has flown from its landing spot to its parking corner of the base map */
+  parkP: 0,
   /** the surface world replaces space (landed, or lifting off) */
   surface: false,
   /** the outside (chase camera) view is wanted */
