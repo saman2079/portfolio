@@ -42,6 +42,24 @@ export interface UniverseText {
     complete: string;
     completeSub: string;
     names: string[];
+    game: {
+      tabSkills: string;
+      tabGame: string;
+      crystal: string;
+      energy: string;
+      placing: string;
+      cancel: string;
+      upgrade: string;
+      move: string;
+      sell: string;
+      collect: string;
+      stored: string;
+      perMin: string;
+      max: string;
+      toast: { poor: string; max: string; full: string; nospace: string };
+      names: Record<"hq" | "extractor" | "generator" | "storage" | "turret" | "wall", string>;
+      info: Record<"hq" | "extractor" | "generator" | "storage" | "turret" | "wall", string>;
+    };
   };
   places: Record<DestinationId, { title: string; sub: string }>;
 }
@@ -88,6 +106,36 @@ export const universeText: Record<Locale, UniverseText> = {
       complete: "پایگاه فول‌استک آنلاین شد",
       completeSub: "همه‌ی {n} مهارت سر جایشان نشسته‌اند و به هم وصل‌اند.",
       names: ["تالار پایه", "مولد انرژی", "برج سپر", "راکتور هسته", "آنتن موجی", "سیلوی داده", "گره شاخه", "خزانه سرور", "حیاط کانتینر"],
+      game: {
+        tabSkills: "مهارت‌ها",
+        tabGame: "ساخت‌وساز",
+        crystal: "کریستال",
+        energy: "انرژی",
+        placing: "{name}: روی یک خانه‌ی خالی بزن",
+        cancel: "لغو",
+        upgrade: "ارتقا",
+        move: "جابه‌جایی",
+        sell: "فروش",
+        collect: "برداشت",
+        stored: "ذخیره",
+        perMin: "در دقیقه",
+        max: "حداکثر سطح",
+        toast: {
+          poor: "منابع کافی نیست",
+          max: "به سقف تعداد رسیدی",
+          full: "انبار پر است؛ ذخیره‌گاه بساز یا ارتقا بده",
+          nospace: "اینجا جا نیست",
+        },
+        names: { hq: "مرکز فرماندهی", extractor: "استخراج‌کننده", generator: "مولد انرژی", storage: "ذخیره‌گاه", turret: "برج دفاعی", wall: "دیوار" },
+        info: {
+          hq: "قلب پایگاه؛ سقف انبار را مشخص می‌کند",
+          extractor: "کریستال تولید می‌کند",
+          generator: "انرژی تولید می‌کند",
+          storage: "سقف منابع را بالا می‌برد",
+          turret: "از پایگاه دفاع می‌کند (به‌زودی)",
+          wall: "راه دشمن را می‌بندد (به‌زودی)",
+        },
+      },
     },
     places: {
       about: { title: "درباره من", sub: "من کیستم" },
@@ -139,6 +187,36 @@ export const universeText: Record<Locale, UniverseText> = {
       complete: "Full-stack base online",
       completeSub: "All {n} skills are in place and linked.",
       names: ["Foundation Hall", "Power Generator", "Shield Tower", "Core Reactor", "Wave Antenna", "Data Silo", "Branch Node", "Server Vault", "Container Yard"],
+      game: {
+        tabSkills: "Skills",
+        tabGame: "Colony",
+        crystal: "Crystal",
+        energy: "Energy",
+        placing: "{name}: tap a free cell",
+        cancel: "Cancel",
+        upgrade: "Upgrade",
+        move: "Move",
+        sell: "Sell",
+        collect: "Collect",
+        stored: "Stored",
+        perMin: "per min",
+        max: "Max level",
+        toast: {
+          poor: "Not enough resources",
+          max: "You reached the limit for this one",
+          full: "Storage is full: build or upgrade storage",
+          nospace: "No room here",
+        },
+        names: { hq: "Command Center", extractor: "Extractor", generator: "Generator", storage: "Storage", turret: "Turret", wall: "Wall" },
+        info: {
+          hq: "The heart of the base; sets the storage cap",
+          extractor: "Produces crystal",
+          generator: "Produces energy",
+          storage: "Raises the resource cap",
+          turret: "Defends the base (coming soon)",
+          wall: "Blocks the enemy's path (coming soon)",
+        },
+      },
     },
     places: {
       about: { title: "About", sub: "Who I am" },

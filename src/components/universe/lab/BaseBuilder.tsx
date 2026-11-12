@@ -23,6 +23,7 @@ import {
   PLATFORM,
   baseLive,
   baseStore,
+  gameBlockers,
   cellCenter,
   links,
   occupant,
@@ -30,6 +31,8 @@ import {
   useBase,
 } from "@/lib/lab/baseStore";
 import { Building, HUES } from "./Buildings";
+import { GameLayer } from "./GameBuildings";
+import { gameStore, useGame } from "@/lib/lab/gameStore";
 
 const OK = new Color(0.2, 1.6, 0.7);
 const BAD = new Color(2.2, 0.3, 0.3);
@@ -117,6 +120,7 @@ export function BaseBuilder() {
   const placed = useBase((s) => s.placed);
   const dragging = useBase((s) => s.dragging);
   const hover = useBase((s) => s.hover);
+  const armedNow = useGame((s) => s.armed);
   const selected = useBase((s) => s.selected);
   const root = useRef<Group>(null);
   const plate = useRef<Group>(null);
@@ -164,7 +168,7 @@ export function BaseBuilder() {
     const on = baseStore.get().mode;
     const show = (u["uShow"]!.value as number) + ((on ? 1 : 0) - (u["uShow"]!.value as number)) * (1 - Math.exp(-dt * 3));
     u["uShow"]!.value = show;
-    const dragWant = baseStore.get().dragging !== null ? 1 : 0;
+    const dragWant = baseStore.get().dragging !== null || gameStore.get().armed ? 1 : 0;
     u["uDrag"]!.value = (u["uDrag"]!.value as number) + (dragWant - (u["uDrag"]!.value as number)) * (1 - Math.exp(-dt * 8));
     u["uTime"]!.value = state.clock.elapsedTime;
     const sp = parkSpot(portrait);
@@ -202,9 +206,14 @@ export function BaseBuilder() {
       baseStore.setHover(null);
       return;
     }
+    const armed = gameStore.get().armed;
+    if (armed) {
+      baseStore.setHover({ gx, gz, ok: gameStore.canPlace(armed.type, gx, gz, armed.moveId) });
+      return;
+    }
     const who = occupant(baseStore.get().placed, gx, gz);
     const drag = baseStore.get().dragging;
-    baseStore.setHover({ gx, gz, ok: who === null || who === drag });
+    baseStore.setHover({ gx, gz, ok: (who === null || who === drag) && !gameBlockers.fn?.(gx, gz) });
   });
 
   const entries = Object.entries(placed)
@@ -219,7 +228,7 @@ export function BaseBuilder() {
   const pairs = useMemo(() => links(placed), [placed]);
 
   const onPress = (index: number) => (e: ThreeEvent<PointerEvent>) => {
-    if (!baseStore.get().mode) return;
+    if (!baseStore.get().mode || gameStore.get().armed) return;
     e.stopPropagation();
     baseLive.candidate = { index, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
     baseLive.px = e.nativeEvent.clientX;
@@ -244,8 +253,10 @@ export function BaseBuilder() {
     </group>
     <group ref={root} visible={mode}>
 
-      {/* hover tile */}
-      {mode && hover && (
+      <GameLayer />
+
+      {/* hover tile (skills drag, or just pointing) */}
+      {mode && hover && !armedNow && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cellCenter(hover.gx, hover.gz)[0], GRID_Y + 0.02, cellCenter(hover.gx, hover.gz)[1]]}>
           <planeGeometry args={[CELL - 0.12, CELL - 0.12]} />
           <meshBasicMaterial color={dragging !== null ? (hover.ok ? OK : BAD) : IDLE} toneMapped={false} transparent opacity={dragging !== null ? 0.55 : 0.25} />

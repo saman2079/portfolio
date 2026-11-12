@@ -1,12 +1,38 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Check, RotateCcw, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUp, Check, Move, RotateCcw, X, Zap } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { baseLive, baseStore, links, power, useBase } from "@/lib/lab/baseStore";
 import { cn } from "@/lib/utils";
+import {
+  MAX_LEVEL,
+  SHOP,
+  TYPES,
+  bufferSize,
+  caps,
+  gameStore,
+  perMinute,
+  stored,
+  upgradeCost,
+  useGame,
+  type BuildingType,
+  type Res,
+} from "@/lib/lab/gameStore";
 import { HUES } from "./Buildings";
+import { TYPE_HUE } from "./GameBuildings";
+
+/** crystal ◆ and energy ⚡ amounts, in their colours (zero amounts are left out) */
+function Cost({ cost }: { cost: Res }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10px]" dir="ltr">
+      {cost.c > 0 && <span className="text-cyan-300">◆{cost.c}</span>}
+      {cost.e > 0 && <span className="text-orange-300">⚡{cost.e}</span>}
+      {cost.c <= 0 && cost.e <= 0 && <span className="text-emerald-300">0</span>}
+    </span>
+  );
+}
 
 /** DOM side of the base builder: the bar of buildings, drag handling, score and info card. */
 export function BuilderUi({ lang }: { lang: Locale }) {
@@ -17,12 +43,36 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   const dragging = useBase((s) => s.dragging);
   const selected = useBase((s) => s.selected);
   const chip = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"skills" | "game">("game");
+  const [, tick] = useState(0);
+  const g = useGame((s) => s);
+  const gt = u.game;
+
+  // open the colony (save, command centre), tick once a second so stored amounts count up
+  useEffect(() => {
+    if (!mode) return;
+    gameStore.init();
+    const id = window.setInterval(() => tick((n) => n + 1), 1000);
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") gameStore.cancel();
+    };
+    window.addEventListener("keydown", key);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("keydown", key);
+      gameStore.cancel();
+    };
+  }, [mode]);
 
   // pointer handling for every kind of drag (bar → grid, grid → grid, grid → bar)
   useEffect(() => {
     if (!mode) return;
     const place = (x: number, y: number) => {
       if (chip.current) chip.current.style.transform = `translate(${x + 14}px, ${y + 14}px)`;
+    };
+    const down = (e: PointerEvent) => {
+      baseLive.px = e.clientX;
+      baseLive.py = e.clientY;
     };
     const move = (e: PointerEvent) => {
       baseLive.px = e.clientX;
@@ -37,6 +87,11 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       const st = baseStore.get();
       const c = baseLive.candidate;
       baseLive.candidate = null;
+      if (gameStore.get().armed) {
+        // a colony building is waiting: a tap on the map drops it on the cell under the pointer
+        if ((e.target as HTMLElement | null)?.tagName === "CANVAS" && st.hover) gameStore.placeAt(st.hover.gx, st.hover.gz);
+        return;
+      }
       if (st.dragging !== null) {
         const over = document.elementFromPoint(e.clientX, e.clientY)?.closest("[data-base-palette]");
         if (over) {
@@ -53,10 +108,12 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       baseLive.candidate = null;
       baseStore.endDrag();
     };
+    window.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", cancel);
     return () => {
+      window.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", cancel);
@@ -71,6 +128,11 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   const caps = lang === "en" ? "uppercase tracking-[0.14em]" : "";
   const sel = selected !== null ? skills[selected] : undefined;
   const nameOf = (i: number) => u.names[i % 9] ?? skills[i]?.name ?? "";
+  const cap = caps(g.buildings);
+  const gsel = g.selected ? g.buildings.find((b) => b.id === g.selected) : undefined;
+  const gdef = gsel ? TYPES[gsel.type] : undefined;
+  const up = gsel ? upgradeCost(gsel) : null;
+  const canUp = Boolean(up && g.res.c >= up.c && g.res.e >= up.e);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 text-paper-100">
@@ -100,9 +162,39 @@ export function BuilderUi({ lang }: { lang: Locale }) {
         </div>
       </div>
 
+      {/* resources */}
+      <div className="absolute inset-x-0 top-[9.3rem] flex justify-center px-4 sm:top-[9.8rem]">
+        <div className="universe-glass pointer-events-auto flex items-center gap-4 px-4 py-1.5 font-mono text-xs" dir="ltr">
+          <span className="inline-flex items-center gap-1.5 text-cyan-300" title={gt.crystal}>
+            ◆ {Math.floor(g.res.c)}
+            <span className="text-paper-300">/{cap.c}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-orange-300" title={gt.energy}>
+            <Zap size={12} aria-hidden /> {Math.floor(g.res.e)}
+            <span className="text-paper-300">/{cap.e}</span>
+          </span>
+        </div>
+      </div>
+
+      {g.armed && (
+        <div className="absolute inset-x-0 top-[12.2rem] flex justify-center px-4 sm:top-[12.8rem]">
+          <div className="universe-glass pointer-events-auto flex items-center gap-3 border-orange-400/50 px-4 py-2 text-xs text-white">
+            <span>{gt.placing.replace("{name}", gt.names[g.armed.type])}</span>
+            <button type="button" onClick={() => gameStore.cancel()} className="rounded-md border border-white/25 px-2 py-1 text-paper-100 hover:border-orange-300">
+              {gt.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+      {g.toast && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-[11rem] flex justify-center px-4 sm:bottom-[12.5rem]">
+          <div className="rounded-md border border-red-400/50 bg-black/75 px-3 py-1.5 text-xs text-red-200 backdrop-blur">{gt.toast[g.toast]}</div>
+        </div>
+      )}
+
       {/* success banner */}
       {done && (
-        <div className="absolute inset-x-0 top-40 flex justify-center px-4 sm:top-44">
+        <div className="absolute inset-x-0 top-[13.4rem] flex justify-center px-4 sm:top-[14rem]">
           <div className="universe-glass flex items-center gap-3 border-emerald-300/40 px-5 py-3">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-400/20 text-emerald-300">
               <Check size={18} aria-hidden />
@@ -115,8 +207,68 @@ export function BuilderUi({ lang }: { lang: Locale }) {
         </div>
       )}
 
+      {/* colony building card */}
+      {gsel && gdef && (
+        <div data-base-ui className="universe-glass pointer-events-auto absolute start-3 bottom-[8.7rem] w-[13rem] p-3 sm:bottom-auto sm:top-44 sm:w-64 sm:p-4">
+          <p className="text-sm font-bold text-white">{gt.names[gsel.type]}</p>
+          <p className="mt-0.5 text-[11px] text-paper-300">{gt.info[gsel.type]}</p>
+          <div className="mt-2.5 flex items-center gap-1.5" dir="ltr">
+            {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((n) => (
+              <span
+                key={n}
+                className={cn("h-1.5 flex-1 rounded-full", n <= gsel.level ? "shadow-[0_0_8px]" : "bg-white/10")}
+                style={n <= gsel.level ? { background: TYPE_HUE[gsel.type], color: TYPE_HUE[gsel.type] } : undefined}
+              />
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-paper-300">
+            {u.level} <span dir="ltr">{gsel.level}/{MAX_LEVEL}</span>
+            {gdef.produces && (
+              <span dir="ltr" className="ms-2 font-mono">
+                +{perMinute(gsel).toFixed(1)} {gt.perMin}
+              </span>
+            )}
+          </p>
+          {gdef.produces && (
+            <button
+              type="button"
+              onClick={() => gameStore.collect(gsel.id)}
+              className="mt-2 flex w-full items-center justify-between rounded-md border border-cyan-300/40 bg-cyan-400/10 px-2.5 py-1.5 text-xs text-cyan-100 hover:bg-cyan-400/20"
+            >
+              <span>{gt.collect}</span>
+              <span dir="ltr" className="font-mono">
+                {Math.floor(stored(gsel))}/{Math.floor(bufferSize(gsel))}
+              </span>
+            </button>
+          )}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              disabled={!up}
+              onClick={() => gameStore.upgrade(gsel.id)}
+              className={cn(
+                "inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2 text-xs",
+                canUp ? "border-orange-400/70 bg-orange-500/10 text-orange-200 hover:bg-orange-500/20" : "border-white/15 text-paper-300",
+                !up && "opacity-50"
+              )}
+            >
+              <ArrowUp size={12} aria-hidden />
+              {up ? <Cost cost={up} /> : gt.max}
+            </button>
+            <button type="button" onClick={() => gameStore.armMove(gsel.id)} className="inline-flex min-h-8 items-center gap-1 rounded-md border border-white/20 px-2 text-xs text-paper-100 hover:border-cyan-300/60">
+              <Move size={12} aria-hidden /> {gt.move}
+            </button>
+            {gsel.type !== "hq" && (
+              <button type="button" onClick={() => gameStore.sell(gsel.id)} className="inline-flex min-h-8 items-center rounded-md border border-white/20 px-2 text-xs text-red-200 hover:border-red-300/60">
+                {gt.sell}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* info card */}
-      {sel && selected !== null && (
+      {sel && selected !== null && tab === "skills" && (
         <div className="universe-glass pointer-events-auto absolute start-3 top-44 hidden w-60 p-4 sm:block">
           <p className="text-sm font-bold text-white">{nameOf(selected)}</p>
           <p className="mt-0.5 text-xs text-cyan-200" dir="ltr">
@@ -159,7 +311,60 @@ export function BuilderUi({ lang }: { lang: Locale }) {
         data-base-palette
         className="universe-glass pointer-events-auto absolute inset-x-3 bottom-3 sm:inset-x-auto sm:start-1/2 sm:w-[min(52rem,92vw)] sm:-translate-x-1/2 rtl:sm:translate-x-1/2"
       >
-        <p className="px-4 pt-2 text-[11px] text-paper-300">{u.hint}</p>
+        <div className="flex items-center gap-1.5 px-3 pt-2" role="tablist">
+          {(["game", "skills"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={tab === k}
+              onClick={() => {
+                gameStore.cancel();
+                setTab(k);
+              }}
+              className={cn(
+                "rounded-md border px-2.5 py-1 text-[11px] font-semibold transition",
+                tab === k ? "border-orange-400/70 bg-orange-500/10 text-orange-200" : "border-white/15 text-paper-300 hover:border-cyan-300/50"
+              )}
+            >
+              {k === "game" ? gt.tabGame : gt.tabSkills}
+            </button>
+          ))}
+          {tab === "skills" && <p className="ms-2 hidden truncate text-[11px] text-paper-300 sm:block">{u.hint}</p>}
+        </div>
+        {tab === "game" && (
+          <ul className="flex gap-2 overflow-x-auto px-3 pb-3 pt-2">
+            {SHOP.map((type: BuildingType) => {
+              const def = TYPES[type];
+              const n = g.buildings.filter((b) => b.type === type).length;
+              const can = g.res.c >= def.cost.c && g.res.e >= def.cost.e && n < def.max;
+              const hue = TYPE_HUE[type];
+              return (
+                <li key={type} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => gameStore.arm(type)}
+                    className={cn(
+                      "flex w-28 select-none flex-col items-start gap-1 rounded-lg border px-2.5 py-2 text-start transition",
+                      g.armed?.type === type && !g.armed.moveId ? "border-orange-400" : "border-white/20 hover:border-cyan-300/60",
+                      can ? "bg-white/5" : "bg-white/[0.02] opacity-55"
+                    )}
+                  >
+                    <span className="flex w-full items-center gap-2">
+                      <span aria-hidden className="h-3 w-3 shrink-0 rounded-sm" style={{ background: hue, boxShadow: `0 0 10px ${hue}` }} />
+                      <span className="truncate text-xs font-semibold text-white">{gt.names[type]}</span>
+                    </span>
+                    <Cost cost={def.cost} />
+                    <span dir="ltr" className="text-[10px] text-paper-300">
+                      {n}/{def.max}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {tab === "skills" && (
         <ul className="flex gap-2 overflow-x-auto px-3 pb-3 pt-2">
           {skills.map((s, i) => {
             const isPlaced = Boolean(placed[i]);
@@ -170,6 +375,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
                   type="button"
                   onPointerDown={(e) => {
                     if (e.button > 0) return;
+                    gameStore.cancel();
                     baseLive.px = e.clientX;
                     baseLive.py = e.clientY;
                     baseStore.startDrag(i);
@@ -199,6 +405,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
             );
           })}
         </ul>
+        )}
       </div>
 
       {/* chip that follows the pointer while dragging */}

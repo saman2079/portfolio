@@ -17,6 +17,9 @@ export const PARK_LEN = 7.03;
 /** Where the parked ship's hull centre stands on the base map, and which way it faces (radians about +y). */
 export const parkSpot = (portrait: boolean) => (portrait ? { x: 0, z: -45, yaw: Math.PI / 2 } : { x: 17.5, z: -18, yaw: 0.5 });
 
+/** Set by the colony game: true when a game building stands on this cell (skill buildings must not). */
+export const gameBlockers = { fn: null as null | ((gx: number, gz: number) => boolean) };
+
 export interface Skill {
   name: string;
   level: number;
@@ -117,6 +120,7 @@ export const baseStore = {
   place(index: number, gx: number, gz: number) {
     const who = occupant(state.placed, gx, gz);
     if (who !== null && who !== index) return false;
+    if (gameBlockers.fn?.(gx, gz)) return false;
     const placed = { ...state.placed, [index]: { gx, gz } };
     save(placed);
     set({ placed });
