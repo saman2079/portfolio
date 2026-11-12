@@ -40,6 +40,8 @@ const SPOTS: [number, number][] = [
 ];
 export const BASES: EnemyBase[] = SPOTS.map(([x, z], id) => ({ id, x, z, y: heightAt(x, z, params), power: id + 1 }));
 
+/** a base you took stays quiet for this long, then its defenders are back */
+export const COOLDOWN_MS = 8 * 60 * 1000;
 const KEY = "lab-scout-v1";
 export const scout = {
   on: false,
@@ -56,6 +58,10 @@ export const scout = {
   joy: { x: 0, y: 0 },
   /** ids of the bases found so far (saved) */
   found: [] as number[],
+  /** when each base was last taken (ms since epoch), saved */
+  cleared: {} as Record<number, number>,
+  /** what the latest discovery paid */
+  reward: { c: 0, e: 0 },
   /** the base found most recently, and when (clock seconds), for the banner and the beacon pulse */
   last: -1,
   lastAt: 0,
@@ -69,7 +75,8 @@ function load() {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return;
-    const d = JSON.parse(raw) as { found?: number[] };
+    const d = JSON.parse(raw) as { found?: number[]; cleared?: Record<number, number> };
+    for (const [k, v] of Object.entries(d.cleared ?? {})) if (typeof v === "number") scout.cleared[Number(k)] = v;
     scout.found = (d.found ?? []).filter((n) => Number.isInteger(n) && n >= 0 && n < BASES.length);
   } catch {
     /* corrupt save: nothing found yet */
@@ -77,7 +84,7 @@ function load() {
 }
 function save() {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify({ found: scout.found }));
+    window.localStorage.setItem(KEY, JSON.stringify({ found: scout.found, cleared: scout.cleared }));
   } catch {
     /* private mode */
   }
@@ -194,6 +201,8 @@ export function updateScout(rawDt: number) {
     if (scout.found.includes(b.id)) continue;
     if (Math.hypot(b.x - scout.x, b.z - scout.z) < REVEAL) {
       scout.found = [...scout.found, b.id];
+      // finding a base pays a little: the stronger the base, the more
+      scout.reward = gameStore.reward({ c: 40 * b.power, e: 20 * b.power });
       scout.last = b.id;
       scout.lastAt = scout.clock;
       save();
@@ -209,4 +218,16 @@ export function updateScout(rawDt: number) {
   atk.camH += (scout.y + 9 - atk.camH) * g;
   atk.camD += (15 - atk.camD) * g;
   atk.lookY += (scout.y - 2 - atk.lookY) * g;
+}
+
+/** ms until a taken base is defended again (0 = ready to attack) */
+export function cooldownLeft(id: number) {
+  load();
+  const t = scout.cleared[id];
+  return t ? Math.max(0, COOLDOWN_MS - (Date.now() - t)) : 0;
+}
+export function markCleared(id: number) {
+  scout.cleared[id] = Date.now();
+  save();
+  notify();
 }

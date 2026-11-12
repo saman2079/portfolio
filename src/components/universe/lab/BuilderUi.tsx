@@ -24,7 +24,8 @@ import { atk, enterAttack, useAttackOn } from "@/lib/lab/attackSim";
 import { callWave, sim } from "@/lib/lab/waveSim";
 import { AttackUi } from "./AttackUi";
 import { ScoutUi } from "./ScoutUi";
-import { BASES, SCOUT_COST, enterScout, scout, useScoutFound, useScoutOn } from "@/lib/lab/scoutSim";
+import { BASES, SCOUT_COST, cooldownLeft, enterScout, scout, useScoutFound, useScoutOn } from "@/lib/lab/scoutSim";
+import { blocker, startAssault } from "@/lib/lab/raidSim";
 import { HUES } from "./Buildings";
 import { TYPE_HUE } from "./GameBuildings";
 
@@ -132,7 +133,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   }, [mode]);
 
   if (!mode) return null;
-  if (attackOn) return <AttackUi t={gt.attack} />;
+  if (attackOn) return <AttackUi t={{ ...gt.attack, names: gt.scout.names }} />;
   if (scoutOn) return <ScoutUi t={gt.scout} />;
 
   const total = skills.length;
@@ -319,6 +320,38 @@ export function BuilderUi({ lang }: { lang: Locale }) {
           <p className="mt-2 text-[11px] text-paper-300">
             {u.level} <span dir="ltr">{sel.level}/5</span>
           </p>
+        </div>
+      )}
+
+      {/* discovered enemy bases: attack one to take its loot */}
+      {foundCount > 0 && (
+        <div className="universe-glass pointer-events-auto absolute bottom-[12.5rem] end-3 w-60 p-2.5 text-xs sm:bottom-[14.5rem] sm:end-5">
+          <p className="mb-1.5 text-[10px] text-red-200">{gt.scout.bases}</p>
+          <div className="space-y-1.5">
+            {BASES.filter((b) => scout.found.includes(b.id)).map((b) => {
+              const cd = cooldownLeft(b.id);
+              const why = blocker(b.id);
+              const off = cd > 0 || why !== null;
+              return (
+                <div key={b.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-paper-100">{gt.scout.names[b.id]}</p>
+                    <p className="text-[10px] text-paper-300">
+                      {cd > 0 ? gt.scout.cooldown.replace("{m}", String(Math.ceil(cd / 60000))) : why === "wave" ? gt.scout.wave : `${gt.scout.power} ${"★".repeat(b.power)}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={off}
+                    onClick={() => startAssault(b.id)}
+                    className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-red-400/80 bg-red-500/10 px-3 font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {gt.scout.attack}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

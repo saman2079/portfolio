@@ -41,6 +41,7 @@ export function CharacterLayer() {
     }
 
     // where the mouse points on the ground (local space of the base)
+    work.plane.constant = -(atk.arena ? atk.ground(atk.x, atk.z) : 0);
     atk.hasAim = false;
     if (atk.useMouse) {
       const rect = state.gl.domElement.getBoundingClientRect();
@@ -62,7 +63,8 @@ export function CharacterLayer() {
     updateAttack(dt);
 
     g.visible = true;
-    g.position.set(atk.x, 0, atk.z);
+    const gy = atk.arena ? atk.ground(atk.x, atk.z) : 0;
+    g.position.set(atk.x, gy, atk.z);
     // turn smoothly toward the facing direction (shortest way round)
     let d = atk.face - g.rotation.y;
     d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -85,12 +87,12 @@ export function CharacterLayer() {
         continue;
       }
       m.visible = true;
-      m.position.set(b.x, 1.3, b.z);
+      m.position.set(b.x, 1.3 + gy, b.z);
       m.rotation.y = Math.atan2(b.vx, b.vz);
     }
     if (reticle.current) {
       reticle.current.visible = atk.useMouse && atk.hasAim;
-      reticle.current.position.set(atk.aimX, 0.2, atk.aimZ);
+      reticle.current.position.set(atk.aimX, 0.2 + gy, atk.aimZ);
     }
     if (bar.current) bar.current.visible = atk.hp < atk.max;
     if (fill.current) fill.current.scale.x = Math.max(0.001, atk.hp / atk.max);

@@ -5,6 +5,7 @@ import { Crosshair, LogOut, Navigation } from "lucide-react";
 import { baseLive } from "@/lib/lab/baseStore";
 import { atk, exitAttack, goToAttack } from "@/lib/lab/attackSim";
 import { sim } from "@/lib/lab/waveSim";
+import { raid } from "@/lib/lab/raidSim";
 import { useGame } from "@/lib/lab/gameStore";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,11 @@ export interface AttackText {
   kills: string;
   hp: string;
   wave: string;
+  /** enemy base names, indexed by base id */
+  names: string[];
+  left: string;
+  win: string;
+  fail: string;
 }
 
 const KEYS: Record<string, "u" | "d" | "l" | "r"> = {
@@ -121,9 +127,15 @@ export function AttackUi({ t }: { t: AttackText }) {
               <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300" style={{ width: `${Math.max(0, (atk.hp / atk.max) * 100)}%` }} />
             </div>
           </div>
-          <div dir="ltr" className="font-mono text-red-300">
-            ⚔ {wave} <span className="text-paper-300">{sim.active ? `×${left}` : `${Math.max(0, Math.ceil(sim.timer))}s`}</span>
-          </div>
+          {raid.on ? (
+            <div className="font-mono text-red-300">
+              {t.names[raid.id] ?? ""} <span dir="ltr" className="text-paper-300">{t.left} {sim.enemies.length}/{raid.total}</span>
+            </div>
+          ) : (
+            <div dir="ltr" className="font-mono text-red-300">
+              ⚔ {wave} <span className="text-paper-300">{sim.active ? `×${left}` : `${Math.max(0, Math.ceil(sim.timer))}s`}</span>
+            </div>
+          )}
           <div dir="ltr" className="font-mono text-orange-300">
             {t.kills} {atk.kills}
           </div>
@@ -132,6 +144,7 @@ export function AttackUi({ t }: { t: AttackText }) {
 
       {/* buttons */}
       <div className="pointer-events-auto absolute end-3 top-36 flex flex-col gap-2 sm:end-5 sm:top-40">
+        {!raid.on && (
         <button
           type="button"
           onClick={() => goToAttack()}
@@ -139,6 +152,7 @@ export function AttackUi({ t }: { t: AttackText }) {
         >
           <Navigation size={14} aria-hidden /> {t.go}
         </button>
+        )}
         <button
           type="button"
           onClick={() => exitAttack()}
@@ -147,6 +161,19 @@ export function AttackUi({ t }: { t: AttackText }) {
           <LogOut size={14} aria-hidden /> {t.exit}
         </button>
       </div>
+
+      {raid.result && (
+        <div className="absolute inset-x-0 top-1/3 flex justify-center px-4">
+          <div className={cn("universe-glass px-6 py-4 text-center", raid.result.win ? "border-emerald-300/60" : "border-red-400/60")}>
+            <p className={cn("text-lg font-bold", raid.result.win ? "text-emerald-300" : "text-red-300")}>{raid.result.win ? t.win : t.fail}</p>
+            {raid.result.win && (
+              <p dir="ltr" className="mt-1 font-mono text-sm text-paper-100">
+                +{raid.result.c} ◆ &nbsp; +{raid.result.e} ⚡
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {coarse ? (
         <>

@@ -58,8 +58,8 @@ export interface UniverseText {
       max: string;
       wave: string;
       callWave: string;
-      scout: { enter: string; exit: string; keys: string; touch: string; battery: string; found: string; discovered: string; names: string[] };
-      attack: { enter: string; exit: string; go: string; keys: string; touch: string; kills: string; hp: string; wave: string };
+      scout: { enter: string; exit: string; keys: string; touch: string; battery: string; found: string; discovered: string; names: string[]; bases: string; power: string; attack: string; cooldown: string; wave: string };
+      attack: { enter: string; exit: string; go: string; keys: string; touch: string; kills: string; hp: string; wave: string; left: string; win: string; fail: string };
       repelled: string;
       raided: string;
       toast: { poor: string; max: string; full: string; nospace: string };
@@ -137,6 +137,11 @@ export const universeText: Record<Locale, UniverseText> = {
           found: "پایگاه دشمن",
           discovered: "پایگاه دشمن پیدا شد: {name}",
           names: ["پست سرخ", "اردوگاه یخی", "دژ غارتگران"],
+          bases: "پایگاه‌های دشمن",
+          power: "قدرت",
+          attack: "حمله",
+          cooldown: "بازسازی {m} دقیقه",
+          wave: "موج در جریان است",
         },
         attack: {
           enter: "حالت حمله",
@@ -147,6 +152,9 @@ export const universeText: Record<Locale, UniverseText> = {
           kills: "کشتار",
           hp: "سلامت",
           wave: "موج",
+          left: "مدافع",
+          win: "پایگاه تصرف شد!",
+          fail: "حمله شکست خورد",
         },
         repelled: "موج {n} دفع شد",
         raided: "پایگاه غارت شد؛ موج {n} دوباره می‌آید",
@@ -242,6 +250,11 @@ export const universeText: Record<Locale, UniverseText> = {
           found: "Enemy bases",
           discovered: "Enemy base found: {name}",
           names: ["Red Outpost", "Frost Camp", "Raider Fort"],
+          bases: "Enemy bases",
+          power: "Power",
+          attack: "Attack",
+          cooldown: "rebuilding {m} min",
+          wave: "A wave is attacking",
         },
         attack: {
           enter: "Attack mode",
@@ -252,6 +265,9 @@ export const universeText: Record<Locale, UniverseText> = {
           kills: "Kills",
           hp: "Health",
           wave: "Wave",
+          left: "Defenders",
+          win: "Base captured!",
+          fail: "Assault failed",
         },
         repelled: "Wave {n} repelled",
         raided: "The base was raided; wave {n} comes again",

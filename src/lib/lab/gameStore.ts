@@ -303,6 +303,15 @@ export const gameStore = {
     save();
     return { c: -c, e: -e };
   },
+  /** income from outside the colony (scouting, taking an enemy base); capped by storage. Returns what was added. */
+  reward(r: Res): Res {
+    const cap = caps();
+    const c = Math.max(0, Math.min(cap.c - state.res.c, r.c));
+    const e = Math.max(0, Math.min(cap.e - state.res.e, r.e));
+    set({ res: { c: state.res.c + c, e: state.res.e + e } });
+    save();
+    return { c, e };
+  },
   /** pay for something outside the shop (the scouting drone); false with a toast when short */
   spend(cost: Res): boolean {
     if (!afford(cost)) {

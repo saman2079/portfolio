@@ -9,6 +9,8 @@ import type { Building } from "@/lib/lab/gameStore";
 import { CELL } from "@/lib/lab/baseStore";
 import { TYPES } from "@/lib/lab/gameStore";
 import { maxHp, resetSim, sim, updateSim } from "@/lib/lab/waveSim";
+import { atk } from "@/lib/lab/attackSim";
+import { raid, updateRaid } from "@/lib/lab/raidSim";
 
 /**
  * Draws the strategy-mode raid (the simulation lives in waveSim.ts): placeholder enemies
@@ -34,7 +36,9 @@ export function WaveLayer() {
       for (const g of shots.current) if (g) g.visible = false;
       return;
     }
-    updateSim(dt);
+    // while you assault an enemy base the colony's own raids are paused
+    if (raid.on) updateRaid(dt);
+    else updateSim(dt);
     const t = state.clock.elapsedTime;
     for (let i = 0; i < MAX_ENEMIES; i++) {
       const g = slots.current[i];
@@ -48,7 +52,8 @@ export function WaveLayer() {
       const brute = e.kind === "brute";
       if (scouts.current[i]) scouts.current[i]!.visible = !brute;
       if (brutes.current[i]) brutes.current[i]!.visible = brute;
-      g.position.set(e.x, brute ? 0 : 0.25 + Math.sin(t * 6 + e.id) * 0.12, e.z);
+      const gy = raid.on ? atk.ground(e.x, e.z) : 0;
+      g.position.set(e.x, gy + (brute ? 0 : 0.25 + Math.sin(t * 6 + e.id) * 0.12), e.z);
       g.rotation.y = e.face;
       g.rotation.z = Math.sin(t * 8 + e.id) * 0.06;
     }

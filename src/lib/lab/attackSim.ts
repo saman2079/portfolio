@@ -59,6 +59,12 @@ export const atk = {
   aimZ: 0,
   bullets: [] as Bullet[],
   kills: 0,
+  /** set while assaulting an enemy base: the fight stays inside this circle, on the terrain */
+  arena: null as null | { x: number; z: number; r: number },
+  ground: (_x: number, _z: number) => 0,
+  /** how many times the character was killed in an assault */
+  deaths: 0,
+  onExit: null as null | (() => void),
 };
 
 const listeners = new Set<() => void>();
@@ -90,10 +96,13 @@ export function easeCam(dt: number, h: number, d: number, look: number) {
   atk.lookY += (look - atk.lookY) * f;
 }
 
-export function enterAttack() {
+export function enterAttack(at?: { x: number; z: number; arena: { x: number; z: number; r: number }; ground: (x: number, z: number) => number }) {
   if (!baseStore.get().mode || atk.on || scoutBusy.on) return;
   gameStore.cancel();
-  const [x, z] = home();
+  atk.arena = at?.arena ?? null;
+  atk.ground = at?.ground ?? (() => 0);
+  atk.deaths = 0;
+  const [x, z] = at ? [at.x, at.z] : home();
   atk.x = atk.camX = x;
   atk.z = atk.camZ = z;
   atk.camH = 9;
@@ -111,6 +120,10 @@ export function enterAttack() {
 export function exitAttack() {
   if (!atk.on) return;
   atk.on = false;
+  atk.arena = null;
+  atk.ground = () => 0;
+  atk.onExit?.();
+  atk.onExit = null;
   atk.fire = false;
   atk.keys = { u: false, d: false, l: false, r: false };
   atk.joy = { x: 0, y: 0 };
@@ -171,15 +184,18 @@ export function updateAttack(rawDt: number) {
     atk.z += iz * SPEED * dt;
   }
 
-  // stay on the plate and out of the buildings
-  const px = atk.x - PLATFORM.x;
-  const pz = atk.z - PLATFORM.z;
+  // stay on the plate (or inside the enemy base's arena) and out of the buildings
+  const cx0 = atk.arena ? atk.arena.x : PLATFORM.x;
+  const cz0 = atk.arena ? atk.arena.z : PLATFORM.z;
+  const lim = atk.arena ? atk.arena.r : LIMIT;
+  const px = atk.x - cx0;
+  const pz = atk.z - cz0;
   const pd = Math.hypot(px, pz);
-  if (pd > LIMIT) {
-    atk.x = PLATFORM.x + (px / pd) * LIMIT;
-    atk.z = PLATFORM.z + (pz / pd) * LIMIT;
+  if (pd > lim) {
+    atk.x = cx0 + (px / pd) * lim;
+    atk.z = cz0 + (pz / pd) * lim;
   }
-  for (const b of gameStore.get().buildings) {
+  for (const b of atk.arena ? [] : gameStore.get().buildings) {
     const [cx, cz] = centreOf(b);
     const hx = (TYPES[b.type].w * CELL) / 2 + 0.5;
     const hz = (TYPES[b.type].h * CELL) / 2 + 0.5;
@@ -247,7 +263,12 @@ export function updateAttack(rawDt: number) {
       if (e.hp > 0 && Math.hypot(e.x - atk.x, e.z - atk.z) < REACH) atk.hp -= e.dps * 0.6 * dt;
     }
   }
-  if (atk.hp <= 0) {
+  if (atk.hp <= 0 && atk.arena) {
+    // an assault is lost: raidSim notices and sends you home; stay safe meanwhile
+    atk.deaths++;
+    atk.hp = atk.max;
+    atk.invuln = 99;
+  } else if (atk.hp <= 0) {
     const [x, z] = home();
     atk.x = x;
     atk.z = z;
@@ -258,5 +279,6 @@ export function updateAttack(rawDt: number) {
   const f = 1 - Math.exp(-dt * 6);
   atk.camX += (atk.x - atk.camX) * f;
   atk.camZ += (atk.z - atk.camZ) * f;
-  easeCam(dt, 9, 11.5, 1.1);
+  const gy = atk.arena ? atk.ground(atk.camX, atk.camZ) : 0;
+  easeCam(dt, 9 + gy, 11.5, 1.1 + gy);
 }
