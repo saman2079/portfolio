@@ -20,6 +20,7 @@ import {
   type BuildingType,
   type Res,
 } from "@/lib/lab/gameStore";
+import { callWave, sim } from "@/lib/lab/waveSim";
 import { HUES } from "./Buildings";
 import { TYPE_HUE } from "./GameBuildings";
 
@@ -173,8 +174,29 @@ export function BuilderUi({ lang }: { lang: Locale }) {
             <Zap size={12} aria-hidden /> {Math.floor(g.res.e)}
             <span className="text-paper-300">/{cap.e}</span>
           </span>
+          <span className="inline-flex items-center gap-1.5 border-s border-white/15 ps-3 text-red-300" title={gt.wave}>
+            ⚔ {g.wave}
+            <span className="text-paper-300">{sim.active ? `×${sim.enemies.length + sim.queue.length}` : `${Math.max(0, Math.ceil(sim.timer))}s`}</span>
+            {!sim.active && (
+              <button type="button" onClick={() => callWave()} className="rounded border border-red-300/40 px-1.5 py-0.5 font-sans text-[10px] text-red-200 hover:bg-red-400/15">
+                {gt.callWave}
+              </button>
+            )}
+          </span>
         </div>
       </div>
+
+      {sim.result && Date.now() - sim.result.at < 7000 && (
+        <div className="pointer-events-none absolute inset-x-0 top-[15.4rem] flex justify-center px-4 sm:top-[16rem]">
+          <div className={cn("rounded-md border bg-black/75 px-3 py-1.5 text-xs backdrop-blur", sim.result.win ? "border-emerald-300/50 text-emerald-200" : "border-red-400/50 text-red-200")}>
+            {(sim.result.win ? gt.repelled : gt.raided).replace("{n}", String(sim.result.wave))}
+            <span dir="ltr" className="ms-2 font-mono">
+              {sim.result.c !== 0 && `◆${sim.result.c > 0 ? "+" : ""}${sim.result.c} `}
+              {sim.result.e !== 0 && `⚡${sim.result.e > 0 ? "+" : ""}${sim.result.e}`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {g.armed && (
         <div className="absolute inset-x-0 top-[12.2rem] flex justify-center px-4 sm:top-[12.8rem]">

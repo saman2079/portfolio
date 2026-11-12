@@ -61,10 +61,12 @@ export interface GameState {
   selected: string | null;
   armed: Armed | null;
   toast: Toast;
+  /** the next raid to repel (rises with every wave survived) */
+  wave: number;
 }
 
 const KEY = "lab-game-v1";
-let state: GameState = { res: { ...START }, buildings: [], selected: null, armed: null, toast: null };
+let state: GameState = { res: { ...START }, buildings: [], selected: null, armed: null, toast: null, wave: 1 };
 let loaded = false;
 const listeners = new Set<() => void>();
 function set(patch: Partial<GameState>) {
@@ -73,7 +75,7 @@ function set(patch: Partial<GameState>) {
 }
 function save() {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify({ res: state.res, buildings: state.buildings }));
+    window.localStorage.setItem(KEY, JSON.stringify({ res: state.res, buildings: state.buildings, wave: state.wave }));
   } catch {
     /* private mode: the colony then only lasts for this visit */
   }
@@ -84,7 +86,7 @@ function load() {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return;
-    const d = JSON.parse(raw) as { res?: Res; buildings?: Building[] };
+    const d = JSON.parse(raw) as { res?: Res; buildings?: Building[]; wave?: number };
     const res = d.res && Number.isFinite(d.res.c) && Number.isFinite(d.res.e) ? { c: Math.max(0, d.res.c), e: Math.max(0, d.res.e) } : { ...START };
     const buildings = (d.buildings ?? []).filter(
       (b) =>
@@ -98,7 +100,7 @@ function load() {
         b.gz + TYPES[b.type].h <= GRID &&
         typeof b.id === "string"
     );
-    state = { ...state, res, buildings: buildings.map((b) => ({ ...b, level: Math.min(MAX_LEVEL, Math.max(1, b.level | 0)), last: Number.isFinite(b.last) ? b.last : Date.now() })) };
+    state = { ...state, wave: Number.isInteger(d.wave) && (d.wave as number) >= 1 ? (d.wave as number) : 1, res, buildings: buildings.map((b) => ({ ...b, level: Math.min(MAX_LEVEL, Math.max(1, b.level | 0)), last: Number.isFinite(b.last) ? b.last : Date.now() })) };
   } catch {
     /* corrupt save: start fresh */
   }
@@ -280,6 +282,26 @@ export const gameStore = {
     if (state.res[TYPES[b.type].produces!] === before) return toast("full");
     set({ buildings: next });
     save();
+  },
+  /**
+   * A raid is over. Won: reward (up to the storage cap) and the next wave. Lost: 30% of both
+   * resources are stolen and the same wave comes again. Returns the change in resources.
+   */
+  endRaid(win: boolean): Res {
+    const cap = caps();
+    if (win) {
+      const w = state.wave;
+      const c = Math.max(0, Math.min(cap.c - state.res.c, 30 + 10 * w));
+      const e = Math.max(0, Math.min(cap.e - state.res.e, 20 + 8 * w));
+      set({ res: { c: state.res.c + c, e: state.res.e + e }, wave: w + 1 });
+      save();
+      return { c, e };
+    }
+    const c = Math.floor(state.res.c * 0.3);
+    const e = Math.floor(state.res.e * 0.3);
+    set({ res: { c: state.res.c - c, e: state.res.e - e } });
+    save();
+    return { c: -c, e: -e };
   },
   /** upgrading the command centre also lifts the storage cap: shown as is, nothing to do here */
   hqLevel,

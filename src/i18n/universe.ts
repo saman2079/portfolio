@@ -56,6 +56,10 @@ export interface UniverseText {
       stored: string;
       perMin: string;
       max: string;
+      wave: string;
+      callWave: string;
+      repelled: string;
+      raided: string;
       toast: { poor: string; max: string; full: string; nospace: string };
       names: Record<"hq" | "extractor" | "generator" | "storage" | "turret" | "wall", string>;
       info: Record<"hq" | "extractor" | "generator" | "storage" | "turret" | "wall", string>;
@@ -120,6 +124,10 @@ export const universeText: Record<Locale, UniverseText> = {
         stored: "ذخیره",
         perMin: "در دقیقه",
         max: "حداکثر سطح",
+        wave: "موج",
+        callWave: "فراخوانی موج",
+        repelled: "موج {n} دفع شد",
+        raided: "پایگاه غارت شد؛ موج {n} دوباره می‌آید",
         toast: {
           poor: "منابع کافی نیست",
           max: "به سقف تعداد رسیدی",
@@ -201,6 +209,10 @@ export const universeText: Record<Locale, UniverseText> = {
         stored: "Stored",
         perMin: "per min",
         max: "Max level",
+        wave: "Wave",
+        callWave: "Call wave",
+        repelled: "Wave {n} repelled",
+        raided: "The base was raided; wave {n} comes again",
         toast: {
           poor: "Not enough resources",
           max: "You reached the limit for this one",

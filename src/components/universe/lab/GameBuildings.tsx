@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Color, type Group, type Mesh } from "three";
 import { CELL, ORIGIN, baseStore, useBase } from "@/lib/lab/baseStore";
+import { BuildingFx, WaveLayer } from "./WaveLayer";
 import { TYPES, bufferSize, gameStore, stored, useGame, type Building, type BuildingType } from "@/lib/lab/gameStore";
 
 /**
@@ -277,7 +278,9 @@ export function GameLayer() {
           const t = TYPES[b.type];
           return (
             <group key={b.id} position={[x, 0, z]} onPointerDown={press(b.id)}>
-              <GameBuilding type={b.type} level={b.level} />
+              <BuildingFx b={b}>
+                <GameBuilding type={b.type} level={b.level} />
+              </BuildingFx>
               <Orb b={b} />
               {selected === b.id && (
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.2, 0]}>
@@ -288,6 +291,8 @@ export function GameLayer() {
             </group>
           );
         })}
+
+      <WaveLayer />
 
       {ghostType && ghostDef && hover && (
         <group position={[centreOf(ghostType, hover.gx, hover.gz)[0], 0, centreOf(ghostType, hover.gx, hover.gz)[1]]}>
