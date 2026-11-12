@@ -3,6 +3,8 @@ import { CELL, PLATFORM, baseStore } from "@/lib/lab/baseStore";
 import { TYPES, gameStore } from "@/lib/lab/gameStore";
 import { centreOf, maxHp, sim } from "@/lib/lab/waveSim";
 import { flightLive } from "@/lib/store/flightStore";
+import { heightAt, paramsFor } from "@/components/universe/surface/terrain";
+import { DESTINATIONS } from "@/lib/universe/destinations";
 
 /**
  * Attack mode: you leave the strategy view and fight the raid yourself as a third-person
@@ -31,7 +33,16 @@ const BULLET_SPEED = 46;
 const BULLET_DMG = 9;
 const FIRE_GAP = 0.13;
 const REACH = 1.8;
-const LIMIT = PLATFORM.r - 4;
+/** attack mode is open-world: you may walk this far from the plate centre (the enemy bases are inside it) */
+const LIMIT = 185;
+const labCfg = DESTINATIONS.find((d) => d.id === "lab");
+const terrainParams = paramsFor(labCfg?.seed ?? 4.1, "lab");
+/** ground height at x/z: the plate is flat, outside it the terrain rises */
+export const groundAt = (x: number, z: number) => (Math.hypot(x - PLATFORM.x, z - PLATFORM.z) < PLATFORM.r + 2 ? 0 : heightAt(x, z, terrainParams));
+export const eachEnemy = (fn: (e: (typeof sim.enemies)[number]) => void) => {
+  for (const e of sim.enemies) fn(e);
+  for (const e of sim.defenders) fn(e);
+};
 
 export const atk = {
   on: false,
@@ -59,11 +70,6 @@ export const atk = {
   aimZ: 0,
   bullets: [] as Bullet[],
   kills: 0,
-  /** set while assaulting an enemy base: the fight stays inside this circle, on the terrain */
-  arena: null as null | { x: number; z: number; r: number },
-  ground: (_x: number, _z: number) => 0,
-  /** how many times the character was killed in an assault */
-  deaths: 0,
   onExit: null as null | (() => void),
 };
 
@@ -96,12 +102,9 @@ export function easeCam(dt: number, h: number, d: number, look: number) {
   atk.lookY += (look - atk.lookY) * f;
 }
 
-export function enterAttack(at?: { x: number; z: number; arena: { x: number; z: number; r: number }; ground: (x: number, z: number) => number }) {
+export function enterAttack(at?: { x: number; z: number }) {
   if (!baseStore.get().mode || atk.on || scoutBusy.on) return;
   gameStore.cancel();
-  atk.arena = at?.arena ?? null;
-  atk.ground = at?.ground ?? (() => 0);
-  atk.deaths = 0;
   const [x, z] = at ? [at.x, at.z] : home();
   atk.x = atk.camX = x;
   atk.z = atk.camZ = z;
@@ -120,8 +123,6 @@ export function enterAttack(at?: { x: number; z: number; arena: { x: number; z: 
 export function exitAttack() {
   if (!atk.on) return;
   atk.on = false;
-  atk.arena = null;
-  atk.ground = () => 0;
   atk.onExit?.();
   atk.onExit = null;
   atk.fire = false;
@@ -144,26 +145,36 @@ export function goToAttack() {
     }
   }
   if (!best && sim.enemies[0]) best = [sim.enemies[0].x, sim.enemies[0].z];
-  if (!best) return;
+  if (!best) {
+    // nothing is under attack: just go back to the command centre
+    const [hx, hz] = home();
+    atk.x = hx;
+    atk.z = hz;
+    atk.camX = hx;
+    atk.camZ = hz;
+    return;
+  }
   // stand on the side of the target that faces the middle of the plate
   const dx = PLATFORM.x - best[0];
   const dz = PLATFORM.z - best[1];
   const d = Math.hypot(dx, dz) || 1;
   atk.x = best[0] + (dx / d) * 5;
   atk.z = best[1] + (dz / d) * 5;
+  atk.camX = atk.x;
+  atk.camZ = atk.z;
 }
 
 const nearestEnemy = (maxDist: number) => {
   let best = maxDist;
   let hit: (typeof sim.enemies)[number] | null = null;
-  for (const e of sim.enemies) {
-    if (e.hp <= 0) continue;
+  eachEnemy((e) => {
+    if (e.hp <= 0) return;
     const d = Math.hypot(e.x - atk.x, e.z - atk.z);
     if (d < best) {
       best = d;
       hit = e;
     }
-  }
+  });
   return hit;
 };
 
@@ -184,18 +195,15 @@ export function updateAttack(rawDt: number) {
     atk.z += iz * SPEED * dt;
   }
 
-  // stay on the plate (or inside the enemy base's arena) and out of the buildings
-  const cx0 = atk.arena ? atk.arena.x : PLATFORM.x;
-  const cz0 = atk.arena ? atk.arena.z : PLATFORM.z;
-  const lim = atk.arena ? atk.arena.r : LIMIT;
-  const px = atk.x - cx0;
-  const pz = atk.z - cz0;
+  // stay inside the map and out of the buildings
+  const px = atk.x - PLATFORM.x;
+  const pz = atk.z - PLATFORM.z;
   const pd = Math.hypot(px, pz);
-  if (pd > lim) {
-    atk.x = cx0 + (px / pd) * lim;
-    atk.z = cz0 + (pz / pd) * lim;
+  if (pd > LIMIT) {
+    atk.x = PLATFORM.x + (px / pd) * LIMIT;
+    atk.z = PLATFORM.z + (pz / pd) * LIMIT;
   }
-  for (const b of atk.arena ? [] : gameStore.get().buildings) {
+  for (const b of gameStore.get().buildings) {
     const [cx, cz] = centreOf(b);
     const hx = (TYPES[b.type].w * CELL) / 2 + 0.5;
     const hz = (TYPES[b.type].h * CELL) / 2 + 0.5;
@@ -243,15 +251,15 @@ export function updateAttack(rawDt: number) {
     b.life -= dt;
     let gone = b.life <= 0;
     if (!gone) {
-      for (const e of sim.enemies) {
-        if (e.hp <= 0) continue;
+      const strike = (e: (typeof sim.enemies)[number]) => {
+        if (gone || e.hp <= 0) return;
         if (Math.hypot(e.x - b.x, e.z - b.z) < (e.kind === "brute" ? 1.4 : 1.0)) {
           e.hp -= BULLET_DMG;
           if (e.hp <= 0) atk.kills++;
           gone = true;
-          break;
         }
-      }
+      };
+      eachEnemy(strike);
     }
     if (gone) atk.bullets.splice(i, 1);
   }
@@ -259,19 +267,16 @@ export function updateAttack(rawDt: number) {
   // raiders that reach the character hurt; dead = back at the command centre
   atk.invuln = Math.max(0, atk.invuln - dt);
   if (atk.invuln <= 0) {
-    for (const e of sim.enemies) {
+    eachEnemy((e) => {
       if (e.hp > 0 && Math.hypot(e.x - atk.x, e.z - atk.z) < REACH) atk.hp -= e.dps * 0.6 * dt;
-    }
+    });
   }
-  if (atk.hp <= 0 && atk.arena) {
-    // an assault is lost: raidSim notices and sends you home; stay safe meanwhile
-    atk.deaths++;
-    atk.hp = atk.max;
-    atk.invuln = 99;
-  } else if (atk.hp <= 0) {
+  if (atk.hp <= 0) {
     const [x, z] = home();
     atk.x = x;
     atk.z = z;
+    atk.camX = x;
+    atk.camZ = z;
     atk.hp = atk.max;
     atk.invuln = 2.5;
   }
@@ -279,6 +284,6 @@ export function updateAttack(rawDt: number) {
   const f = 1 - Math.exp(-dt * 6);
   atk.camX += (atk.x - atk.camX) * f;
   atk.camZ += (atk.z - atk.camZ) * f;
-  const gy = atk.arena ? atk.ground(atk.camX, atk.camZ) : 0;
+  const gy = groundAt(atk.camX, atk.camZ);
   easeCam(dt, 9 + gy, 11.5, 1.1 + gy);
 }

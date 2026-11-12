@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import { Color, Matrix4, Plane, Ray, Vector3, type Group, type Mesh } from "three";
 import { baseLive, baseStore } from "@/lib/lab/baseStore";
-import { MAX_BULLETS, atk, exitAttack, updateAttack } from "@/lib/lab/attackSim";
+import { MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
 
 /**
  * The player's character in attack mode, a placeholder soldier: dark armour with a glowing
@@ -41,7 +41,7 @@ export function CharacterLayer() {
     }
 
     // where the mouse points on the ground (local space of the base)
-    work.plane.constant = -(atk.arena ? atk.ground(atk.x, atk.z) : 0);
+    work.plane.constant = -groundAt(atk.x, atk.z);
     atk.hasAim = false;
     if (atk.useMouse) {
       const rect = state.gl.domElement.getBoundingClientRect();
@@ -63,7 +63,7 @@ export function CharacterLayer() {
     updateAttack(dt);
 
     g.visible = true;
-    const gy = atk.arena ? atk.ground(atk.x, atk.z) : 0;
+    const gy = groundAt(atk.x, atk.z);
     g.position.set(atk.x, gy, atk.z);
     // turn smoothly toward the facing direction (shortest way round)
     let d = atk.face - g.rotation.y;

@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Color, type Group, type Mesh } from "three";
 import { baseStore } from "@/lib/lab/baseStore";
-import { BASES, REVEAL, exitScout, scout, updateScout } from "@/lib/lab/scoutSim";
+import { BASES, REVEAL, cooldownLeft, exitScout, scout, updateScout } from "@/lib/lab/scoutSim";
 
 /**
  * The scouting drone and the enemy bases it uncovers (placeholder models, to be swapped later).
@@ -58,6 +58,7 @@ export function DroneLayer() {
       const found = scout.found.includes(i);
       b.visible = found;
       const bc = beacons.current[i];
+      if (bc) bc.visible = cooldownLeft(i) === 0;
       if (found && bc) {
         // the beacon swells for a moment right after the discovery
         const pulse = i === scout.last ? Math.max(0, 1 - (scout.clock - scout.lastAt) / 1.5) : 0;

@@ -1,49 +1,68 @@
-import { baseStore } from "@/lib/lab/baseStore";
-import { atk, enterAttack, exitAttack, scoutBusy } from "@/lib/lab/attackSim";
+import { baseStore, PLATFORM } from "@/lib/lab/baseStore";
+import { atk, enterAttack, scoutBusy } from "@/lib/lab/attackSim";
 import { gameStore } from "@/lib/lab/gameStore";
-import { BASES, markCleared } from "@/lib/lab/scoutSim";
+import { BASES, cooldownLeft, discover, markCleared } from "@/lib/lab/scoutSim";
 import { sim, type Enemy } from "@/lib/lab/waveSim";
-import { heightAt, paramsFor } from "@/components/universe/surface/terrain";
-import { DESTINATIONS } from "@/lib/universe/destinations";
 
 /**
- * Phase 7: assaulting a discovered enemy base. You land next to it as the third-person character
- * (attack mode, see attackSim) and its defenders come for you. Kill them all to take the base and
- * its loot; if you fall, the assault fails. The colony's own raids are paused while you are away.
- * The defenders reuse waveSim's enemy list, so the same renderer, bullets and damage apply.
+ * Phase 7: the enemy bases out on the map. In attack mode you walk (or fast-travel) out of the colony
+ * to an enemy base; its garrison wakes up when you get close. Kill every defender to take the base and
+ * its loot. While you are away the colony keeps being raided, and the raiders come from the enemy
+ * bases that are still standing: take a base down and the waves from it stop.
+ * The garrison lives in sim.defenders so the same renderer, bullets and damage as for raiders apply.
  */
-const lab = DESTINATIONS.find((d) => d.id === "lab");
-const params = paramsFor(lab?.seed ?? 4.1, "lab");
-const ground = (x: number, z: number) => heightAt(x, z, params);
-
-export const ARENA_R = 42;
+const SPAWN_NEAR = 60;
+const DESPAWN_FAR = 100;
 const AGGRO = 17;
-const END_DELAY = 3.5;
+const LEASH = 42;
+const FOUND_NEAR = 45;
+/** where fast travel drops you, outside the garrison's wake-up range */
+const ARRIVE = 36;
 
 export const raid = {
-  on: false,
-  id: -1,
-  /** null while fighting */
-  result: null as null | { win: boolean; c: number; e: number },
-  total: 0,
-  endIn: 0,
+  /** the base you took most recently, shown as a banner */
+  result: null as null | { id: number; c: number; e: number; at: number },
+  /** garrison size per spawned base (a base is in this map while its garrison is out) */
+  spawned: {} as Record<number, number>,
 };
 
-/** why an assault cannot start (null = it can) */
-export function blocker(id: number): "wave" | "busy" | "none" | null {
-  if (!baseStore.get().mode || atk.on || scoutBusy.on || raid.on) return "busy";
-  if (sim.active) return "wave";
-  if (!BASES[id]) return "none";
-  return null;
+/** a base whose defenders are up (not recently taken) */
+const standing = (id: number) => cooldownLeft(id) === 0;
+
+// waves come from the enemy bases that still stand; none left = a quiet spell
+sim.pickOrigin = () => {
+  const up = BASES.filter((b) => standing(b.id));
+  if (!up.length) return null;
+  const b = up[Math.floor(Math.random() * up.length)]!;
+  return { id: b.id, angle: Math.atan2(b.z - PLATFORM.z, b.x - PLATFORM.x), mul: 0.5 + (up.length / BASES.length) * 0.5 };
+};
+
+/** fast travel: walk out of the colony to just outside an enemy base. Works from strategy view or in attack mode. */
+export function travelTo(id: number): boolean {
+  const b = BASES[id];
+  if (!b || !baseStore.get().mode || scoutBusy.on) return false;
+  const x = b.x;
+  const z = b.z + ARRIVE;
+  if (!atk.on) enterAttack({ x, z });
+  else {
+    atk.x = atk.camX = x;
+    atk.z = atk.camZ = z;
+  }
+  if (atk.on) {
+    atk.face = Math.PI;
+    return true;
+  }
+  return false;
 }
 
-export function startAssault(id: number): boolean {
-  if (blocker(id)) return false;
+function clearGarrisons() {
+  sim.defenders = [];
+  raid.spawned = {};
+}
+
+function spawnGarrison(id: number) {
   const b = BASES[id]!;
   const n = 5 + b.power * 3;
-  sim.enemies = [];
-  sim.queue = [];
-  sim.shots = [];
   const hpMul = 1 + 0.35 * (b.power - 1);
   const dpsMul = 1 + 0.2 * (b.power - 1);
   for (let i = 0; i < n; i++) {
@@ -61,79 +80,66 @@ export function startAssault(id: number): boolean {
       max: hp,
       speed: brute ? 2.6 : 4.6,
       dps: (brute ? 16 : 5) * dpsMul,
-      target: null,
+      target: `b${id}`,
       face: 0,
     };
-    sim.enemies.push(e);
+    sim.defenders.push(e);
   }
-  raid.on = true;
-  raid.id = id;
-  raid.result = null;
-  raid.total = n;
-  raid.endIn = 0;
-  // you arrive on the open side, facing the keep
-  enterAttack({ x: b.x, z: b.z + ARENA_R - 4, arena: { x: b.x, z: b.z, r: ARENA_R }, ground });
-  atk.kills = 0;
-  atk.onExit = () => {
-    raid.on = false;
-    sim.enemies = [];
-  };
-  if (!atk.on) {
-    raid.on = false;
-    sim.enemies = [];
-    return false;
-  }
-  return true;
+  raid.spawned[id] = n;
 }
 
 export function updateRaid(rawDt: number) {
-  if (!raid.on) return;
   const dt = Math.min(rawDt, 0.05);
   if (!atk.on) {
-    raid.on = false;
+    if (sim.defenders.length || Object.keys(raid.spawned).length) clearGarrisons();
     return;
   }
-  if (raid.result) {
-    raid.endIn -= dt;
-    if (raid.endIn <= 0) exitAttack();
-    return;
+  for (const b of BASES) {
+    const d = Math.hypot(b.x - atk.x, b.z - atk.z);
+    if (d < FOUND_NEAR) discover(b.id);
+    const up = standing(b.id);
+    const out = raid.spawned[b.id] !== undefined;
+    if (up && !out && d < SPAWN_NEAR) spawnGarrison(b.id);
+    else if (out && d > DESPAWN_FAR) {
+      // walked away: the garrison goes back to its post (fresh next time)
+      sim.defenders = sim.defenders.filter((e) => e.target !== `b${b.id}`);
+      delete raid.spawned[b.id];
+    }
   }
-  const b = BASES[raid.id]!;
-  for (const e of sim.enemies) {
+
+  for (const e of sim.defenders) {
     if (e.hp <= 0) continue;
+    const b = BASES[Number(e.target!.slice(1))]!;
     const dx = atk.x - e.x;
     const dz = atk.z - e.z;
     const d = Math.hypot(dx, dz) || 1;
-    // defenders wait until you come close (or until one of them is shot), then charge
-    // the last few come for you whatever the distance, so nobody is left hiding
-    if (d < AGGRO || e.hp < e.max || sim.enemies.length <= 3) {
+    // defenders wait until you come close (or one of them is shot), then charge; the last few always do
+    const left = sim.defenders.filter((o) => o.target === e.target && o.hp > 0).length;
+    if (d < AGGRO || e.hp < e.max || left <= 3) {
       e.face = Math.atan2(dx, dz);
       if (d > 1.5) {
         e.x += (dx / d) * e.speed * dt;
         e.z += (dz / d) * e.speed * dt;
       }
     }
-    // keep them inside the base area
     const ox = e.x - b.x;
     const oz = e.z - b.z;
     const od = Math.hypot(ox, oz);
-    if (od > ARENA_R) {
-      e.x = b.x + (ox / od) * ARENA_R;
-      e.z = b.z + (oz / od) * ARENA_R;
+    if (od > LEASH) {
+      e.x = b.x + (ox / od) * LEASH;
+      e.z = b.z + (oz / od) * LEASH;
     }
   }
-  sim.enemies = sim.enemies.filter((e) => e.hp > 0);
+  sim.defenders = sim.defenders.filter((e) => e.hp > 0);
 
-  if (atk.deaths > 0) {
-    raid.result = { win: false, c: 0, e: 0 };
-    raid.endIn = END_DELAY;
-  } else if (!sim.enemies.length) {
+  // a base whose garrison is all dead is taken
+  for (const key of Object.keys(raid.spawned)) {
+    const id = Number(key);
+    if (sim.defenders.some((e) => e.target === `b${id}`)) continue;
+    const b = BASES[id]!;
     const r = gameStore.reward({ c: 90 * b.power, e: 60 * b.power });
-    markCleared(b.id);
-    raid.result = { win: true, c: r.c, e: r.e };
-    raid.endIn = END_DELAY;
+    markCleared(id);
+    delete raid.spawned[id];
+    raid.result = { id, c: r.c, e: r.e, at: Date.now() };
   }
 }
-
-/** how many defenders are still alive */
-export const defendersLeft = () => sim.enemies.length;

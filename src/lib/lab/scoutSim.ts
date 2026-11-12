@@ -126,6 +126,20 @@ export function isFound(id: number) {
   return scout.found.includes(id);
 }
 
+/** mark a base as found (by the drone, or by walking up to it) and pay the finder's fee */
+export function discover(id: number) {
+  load();
+  const b = BASES[id];
+  if (!b || scout.found.includes(id)) return;
+  scout.found = [...scout.found, id];
+  // finding a base pays a little: the stronger the base, the more
+  scout.reward = gameStore.reward({ c: 40 * b.power, e: 20 * b.power });
+  scout.last = id;
+  scout.lastAt = scout.clock;
+  save();
+  notify();
+}
+
 export function enterScout(): boolean {
   load();
   if (!baseStore.get().mode || atk.on || scout.on) return false;
@@ -199,15 +213,7 @@ export function updateScout(rawDt: number) {
   // reveal bases that the drone passes near
   for (const b of BASES) {
     if (scout.found.includes(b.id)) continue;
-    if (Math.hypot(b.x - scout.x, b.z - scout.z) < REVEAL) {
-      scout.found = [...scout.found, b.id];
-      // finding a base pays a little: the stronger the base, the more
-      scout.reward = gameStore.reward({ c: 40 * b.power, e: 20 * b.power });
-      scout.last = b.id;
-      scout.lastAt = scout.clock;
-      save();
-      notify();
-    }
+    if (Math.hypot(b.x - scout.x, b.z - scout.z) < REVEAL) discover(b.id);
   }
 
   // the camera follows the drone from higher up and further back than in attack mode

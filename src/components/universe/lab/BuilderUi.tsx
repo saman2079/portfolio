@@ -25,7 +25,7 @@ import { callWave, sim } from "@/lib/lab/waveSim";
 import { AttackUi } from "./AttackUi";
 import { ScoutUi } from "./ScoutUi";
 import { BASES, SCOUT_COST, cooldownLeft, enterScout, scout, useScoutFound, useScoutOn } from "@/lib/lab/scoutSim";
-import { blocker, startAssault } from "@/lib/lab/raidSim";
+import { travelTo } from "@/lib/lab/raidSim";
 import { HUES } from "./Buildings";
 import { TYPE_HUE } from "./GameBuildings";
 
@@ -330,20 +330,19 @@ export function BuilderUi({ lang }: { lang: Locale }) {
           <div className="space-y-1.5">
             {BASES.filter((b) => scout.found.includes(b.id)).map((b) => {
               const cd = cooldownLeft(b.id);
-              const why = blocker(b.id);
-              const off = cd > 0 || why !== null;
+              const off = cd > 0;
               return (
                 <div key={b.id} className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-paper-100">{gt.scout.names[b.id]}</p>
                     <p className="text-[10px] text-paper-300">
-                      {cd > 0 ? gt.scout.cooldown.replace("{m}", String(Math.ceil(cd / 60000))) : why === "wave" ? gt.scout.wave : `${gt.scout.power} ${"★".repeat(b.power)}`}
+                      {cd > 0 ? gt.scout.cooldown.replace("{m}", String(Math.ceil(cd / 60000))) : `${gt.scout.power} ${"★".repeat(b.power)}`}
                     </p>
                   </div>
                   <button
                     type="button"
                     disabled={off}
-                    onClick={() => startAssault(b.id)}
+                    onClick={() => travelTo(b.id)}
                     className="inline-flex min-h-9 shrink-0 items-center rounded-lg border border-red-400/80 bg-red-500/10 px-3 font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {gt.scout.attack}

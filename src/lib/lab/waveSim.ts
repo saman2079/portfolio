@@ -62,6 +62,13 @@ export const sim = {
   hpMul: 1,
   dpsMul: 1,
   enemies: [] as Enemy[],
+  /** garrisons of the enemy bases near the player in attack mode (raidSim owns and moves them) */
+  defenders: [] as Enemy[],
+  /** the enemy base the current wave comes from (-1 = unknown), set by raidSim's picker */
+  origin: -1,
+  originAngle: null as number | null,
+  /** chooses where a wave comes from; null = every enemy base is down, so no wave for now */
+  pickOrigin: null as null | (() => { id: number; angle: number; mul: number } | null),
   hp: {} as Record<string, number>,
   cd: {} as Record<string, number>,
   shots: [] as Shot[],
@@ -75,6 +82,7 @@ export function resetSim() {
   sim.timer = FIRST_WAIT;
   sim.queue = [];
   sim.enemies = [];
+  sim.defenders = [];
   sim.shots = [];
   sim.hp = {};
   sim.cd = {};
@@ -89,7 +97,21 @@ const alive = (b: Building) => (sim.hp[b.id] ?? 1) > 0;
 /** wave n: more scouts every wave, a brute every third wave, everything a little tougher */
 function startWave() {
   const n = gameStore.get().wave;
-  const scouts = 2 + Math.floor(n * 1.2);
+  let mul = 1;
+  sim.origin = -1;
+  sim.originAngle = null;
+  if (sim.pickOrigin) {
+    const o = sim.pickOrigin();
+    if (!o) {
+      // every enemy base is down: a quiet spell
+      sim.timer = NEXT_WAIT;
+      return;
+    }
+    sim.origin = o.id;
+    sim.originAngle = o.angle;
+    mul = o.mul;
+  }
+  const scouts = Math.max(1, Math.round((2 + Math.floor(n * 1.2)) * mul));
   const brutes = Math.floor((n - 1) / 3);
   const q: EnemyKind[] = Array.from({ length: scouts }, () => "scout");
   for (let i = 0; i < brutes; i++) q.splice(Math.min(q.length, 2 + i * 3), 0, "brute");
@@ -149,7 +171,8 @@ export function updateSim(rawDt: number) {
   sim.spawnCd -= dt;
   if (sim.queue.length && sim.spawnCd <= 0) {
     const kind = sim.queue.shift()!;
-    const a = Math.random() * Math.PI * 2;
+    // raiders come from the side of the base that sent the wave, if known
+    const a = sim.originAngle === null ? Math.random() * Math.PI * 2 : sim.originAngle + (Math.random() - 0.5) * 0.9;
     const k = KIND[kind];
     const hp = k.hp * sim.hpMul;
     sim.enemies.push({
