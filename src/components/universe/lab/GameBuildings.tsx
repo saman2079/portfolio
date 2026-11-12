@@ -5,6 +5,7 @@ import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Color, type Group, type Mesh } from "three";
 import { CELL, ORIGIN, baseStore, useBase } from "@/lib/lab/baseStore";
 import { CharacterLayer } from "./Character";
+import { DroneLayer } from "./DroneLayer";
 import { BuildingFx, WaveLayer } from "./WaveLayer";
 import { TYPES, bufferSize, gameStore, stored, useGame, type Building, type BuildingType } from "@/lib/lab/gameStore";
 
@@ -295,6 +296,7 @@ export function GameLayer() {
 
       <WaveLayer />
       <CharacterLayer />
+      <DroneLayer />
 
       {ghostType && ghostDef && hover && (
         <group position={[centreOf(ghostType, hover.gx, hover.gz)[0], 0, centreOf(ghostType, hover.gx, hover.gz)[1]]}>

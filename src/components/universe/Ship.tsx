@@ -354,8 +354,8 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
       const av = MathUtils.smootherstep(live.attackView, 0, 1);
       if (av > 0) {
         const k = state.size.width / state.size.height < 0.8 ? 1.3 : 1;
-        work.attackLook.set(atk.camX, GRID_CENTER.y + 1.1, atk.camZ - 1.5);
-        work.attackEye.set(atk.camX, GRID_CENTER.y + 9 * k, atk.camZ + 11.5 * k);
+        work.attackLook.set(atk.camX, GRID_CENTER.y + atk.lookY, atk.camZ - 1.5);
+        work.attackEye.set(atk.camX, GRID_CENTER.y + atk.camH * k, atk.camZ + atk.camD * k);
         work.m.lookAt(work.attackEye, work.attackLook, UP);
         work.qAttack.setFromRotationMatrix(work.m);
         h.position.lerp(work.attackEye, av);

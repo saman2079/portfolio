@@ -58,6 +58,7 @@ export interface UniverseText {
       max: string;
       wave: string;
       callWave: string;
+      scout: { enter: string; exit: string; keys: string; touch: string; battery: string; found: string; discovered: string; names: string[] };
       attack: { enter: string; exit: string; go: string; keys: string; touch: string; kills: string; hp: string; wave: string };
       repelled: string;
       raided: string;
@@ -127,6 +128,16 @@ export const universeText: Record<Locale, UniverseText> = {
         max: "حداکثر سطح",
         wave: "موج",
         callWave: "فراخوانی موج",
+        scout: {
+          enter: "پهپاد",
+          exit: "فرود پهپاد",
+          keys: "حرکت: WASD یا کلیدهای جهت · خروج: Esc",
+          touch: "با جوی‌استیک پهپاد را حرکت بده",
+          battery: "باتری",
+          found: "پایگاه دشمن",
+          discovered: "پایگاه دشمن پیدا شد: {name}",
+          names: ["پست سرخ", "اردوگاه یخی", "دژ غارتگران"],
+        },
         attack: {
           enter: "حالت حمله",
           exit: "بازگشت",
@@ -222,6 +233,16 @@ export const universeText: Record<Locale, UniverseText> = {
         max: "Max level",
         wave: "Wave",
         callWave: "Call wave",
+        scout: {
+          enter: "Drone",
+          exit: "Land drone",
+          keys: "Move: WASD or arrows · Exit: Esc",
+          touch: "Fly the drone with the joystick",
+          battery: "Battery",
+          found: "Enemy bases",
+          discovered: "Enemy base found: {name}",
+          names: ["Red Outpost", "Frost Camp", "Raider Fort"],
+        },
         attack: {
           enter: "Attack mode",
           exit: "Back",

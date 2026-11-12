@@ -303,6 +303,16 @@ export const gameStore = {
     save();
     return { c: -c, e: -e };
   },
+  /** pay for something outside the shop (the scouting drone); false with a toast when short */
+  spend(cost: Res): boolean {
+    if (!afford(cost)) {
+      toast("poor");
+      return false;
+    }
+    set({ res: pay(cost) });
+    save();
+    return true;
+  },
   /** upgrading the command centre also lifts the storage cap: shown as is, nothing to do here */
   hqLevel,
 };

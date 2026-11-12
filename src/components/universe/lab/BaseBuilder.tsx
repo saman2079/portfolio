@@ -34,6 +34,7 @@ import { Building, HUES } from "./Buildings";
 import { GameLayer } from "./GameBuildings";
 import { gameStore, useGame } from "@/lib/lab/gameStore";
 import { atk, useAttackOn } from "@/lib/lab/attackSim";
+import { scout, useScoutOn } from "@/lib/lab/scoutSim";
 
 const OK = new Color(0.2, 1.6, 0.7);
 const BAD = new Color(2.2, 0.3, 0.3);
@@ -122,7 +123,7 @@ export function BaseBuilder() {
   const dragging = useBase((s) => s.dragging);
   const hover = useBase((s) => s.hover);
   const armedNow = useGame((s) => s.armed);
-  const attackNow = useAttackOn();
+  const attackNow = useAttackOn() || useScoutOn();
   const selected = useBase((s) => s.selected);
   const root = useRef<Group>(null);
   const plate = useRef<Group>(null);
@@ -187,7 +188,7 @@ export function BaseBuilder() {
   useFrame((state) => {
     const g = root.current;
     if (!g || !baseStore.get().mode) return;
-    if (atk.on) {
+    if (atk.on || scout.on) {
       baseStore.setHover(null);
       return;
     }

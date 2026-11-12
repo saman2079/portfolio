@@ -23,6 +23,9 @@ export interface Bullet {
 }
 export const MAX_BULLETS = 40;
 
+/** set by scoutSim: true while the drone flies (the two modes exclude each other) */
+export const scoutBusy = { on: false };
+
 const SPEED = 9;
 const BULLET_SPEED = 46;
 const BULLET_DMG = 9;
@@ -37,6 +40,10 @@ export const atk = {
   face: 0,
   camX: 0,
   camZ: 0,
+  /** camera height / distance behind / look-at height, eased (the scouting drone uses a higher view) */
+  camH: 9,
+  camD: 11.5,
+  lookY: 1.1,
   hp: 100,
   max: 100,
   fireCd: 0,
@@ -75,12 +82,23 @@ function home(): [number, number] {
   return [cx, cz + 5.5];
 }
 
+/** ease the camera framing toward a target view */
+export function easeCam(dt: number, h: number, d: number, look: number) {
+  const f = 1 - Math.exp(-dt * 3);
+  atk.camH += (h - atk.camH) * f;
+  atk.camD += (d - atk.camD) * f;
+  atk.lookY += (look - atk.lookY) * f;
+}
+
 export function enterAttack() {
-  if (!baseStore.get().mode || atk.on) return;
+  if (!baseStore.get().mode || atk.on || scoutBusy.on) return;
   gameStore.cancel();
   const [x, z] = home();
   atk.x = atk.camX = x;
   atk.z = atk.camZ = z;
+  atk.camH = 9;
+  atk.camD = 11.5;
+  atk.lookY = 1.1;
   atk.face = Math.PI;
   atk.hp = atk.max;
   atk.kills = 0;
@@ -240,4 +258,5 @@ export function updateAttack(rawDt: number) {
   const f = 1 - Math.exp(-dt * 6);
   atk.camX += (atk.x - atk.camX) * f;
   atk.camZ += (atk.z - atk.camZ) * f;
+  easeCam(dt, 9, 11.5, 1.1);
 }

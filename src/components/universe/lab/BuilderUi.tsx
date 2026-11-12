@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Crosshair, Move, RotateCcw, X, Zap } from "lucide-react";
+import { ArrowUp, Check, Crosshair, Move, Radar, RotateCcw, X, Zap } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { baseLive, baseStore, links, power, useBase } from "@/lib/lab/baseStore";
@@ -23,6 +23,8 @@ import {
 import { atk, enterAttack, useAttackOn } from "@/lib/lab/attackSim";
 import { callWave, sim } from "@/lib/lab/waveSim";
 import { AttackUi } from "./AttackUi";
+import { ScoutUi } from "./ScoutUi";
+import { BASES, SCOUT_COST, enterScout, scout, useScoutFound, useScoutOn } from "@/lib/lab/scoutSim";
 import { HUES } from "./Buildings";
 import { TYPE_HUE } from "./GameBuildings";
 
@@ -51,6 +53,8 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   const g = useGame((s) => s);
   const gt = u.game;
   const attackOn = useAttackOn();
+  const scoutOn = useScoutOn();
+  const foundCount = useScoutFound();
 
   // open the colony (save, command centre), tick once a second so stored amounts count up
   useEffect(() => {
@@ -75,12 +79,12 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       if (chip.current) chip.current.style.transform = `translate(${x + 14}px, ${y + 14}px)`;
     };
     const down = (e: PointerEvent) => {
-      if (atk.on) return;
+      if (atk.on || scout.on) return;
       baseLive.px = e.clientX;
       baseLive.py = e.clientY;
     };
     const move = (e: PointerEvent) => {
-      if (atk.on) return;
+      if (atk.on || scout.on) return;
       baseLive.px = e.clientX;
       baseLive.py = e.clientY;
       place(e.clientX, e.clientY);
@@ -90,7 +94,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       }
     };
     const up = (e: PointerEvent) => {
-      if (atk.on) return;
+      if (atk.on || scout.on) return;
       const st = baseStore.get();
       const c = baseLive.candidate;
       baseLive.candidate = null;
@@ -129,6 +133,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
 
   if (!mode) return null;
   if (attackOn) return <AttackUi t={gt.attack} />;
+  if (scoutOn) return <ScoutUi t={gt.scout} />;
 
   const total = skills.length;
   const count = Object.keys(placed).filter((k) => Number(k) < total).length;
@@ -319,6 +324,13 @@ export function BuilderUi({ lang }: { lang: Locale }) {
 
       {/* top-corner buttons */}
       <div className="pointer-events-auto absolute bottom-[8.5rem] end-3 flex gap-2 sm:bottom-40 sm:end-5">
+        <button
+          type="button"
+          onClick={() => enterScout()}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-cyan-400/80 bg-cyan-500/10 px-3 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-500/20"
+        >
+          <Radar size={14} aria-hidden /> {gt.scout.enter} <span dir="ltr">⚡{SCOUT_COST.e} · {foundCount}/{BASES.length}</span>
+        </button>
         <button
           type="button"
           onClick={() => enterAttack()}
