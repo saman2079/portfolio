@@ -149,8 +149,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         uAmb: { value: storm ? 1.15 : 0.5 },
         ...(storm
           ? {
-              uTex: { value: stormTex("ground.jpg", aniso, { mirror: true, data: true }) },
-              uNorm: { value: stormTex("groundn.jpg", aniso, { mirror: true, data: true }) },
+              uTex: { value: stormTex("ground.jpg", aniso, { data: true }) },
+              uNorm: { value: stormTex("groundn.jpg", aniso, { data: true }) },
             }
           : {}),
       },

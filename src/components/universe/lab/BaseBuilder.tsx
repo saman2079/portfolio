@@ -5,7 +5,7 @@ import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import {
   Color,
   Matrix4,
-  MirroredRepeatWrapping,
+  RepeatWrapping,
   NoColorSpace,
   Plane,
   Quaternion,
@@ -132,7 +132,7 @@ export function BaseBuilder() {
   const platform = useMemo(() => {
     const tex = new TextureLoader().load("/models/storm/ground.jpg");
     tex.colorSpace = NoColorSpace;
-    tex.wrapS = tex.wrapT = MirroredRepeatWrapping;
+    tex.wrapS = tex.wrapT = RepeatWrapping;
     tex.anisotropy = 8;
     const mat = new ShaderMaterial({
       vertexShader: platformVertex,
