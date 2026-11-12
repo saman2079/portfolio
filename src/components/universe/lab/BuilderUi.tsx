@@ -11,7 +11,7 @@ import {
   SHOP,
   TYPES,
   bufferSize,
-  caps,
+  caps as resourceCaps,
   gameStore,
   perMinute,
   stored,
@@ -136,7 +136,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   const caps = lang === "en" ? "uppercase tracking-[0.14em]" : "";
   const sel = selected !== null ? skills[selected] : undefined;
   const nameOf = (i: number) => u.names[i % 9] ?? skills[i]?.name ?? "";
-  const cap = caps(g.buildings);
+  const cap = resourceCaps(g.buildings);
   const gsel = g.selected ? g.buildings.find((b) => b.id === g.selected) : undefined;
   const gdef = gsel ? TYPES[gsel.type] : undefined;
   const up = gsel ? upgradeCost(gsel) : null;
