@@ -33,6 +33,7 @@ import {
 import { Building, HUES } from "./Buildings";
 import { GameLayer } from "./GameBuildings";
 import { gameStore, useGame } from "@/lib/lab/gameStore";
+import { atk, useAttackOn } from "@/lib/lab/attackSim";
 
 const OK = new Color(0.2, 1.6, 0.7);
 const BAD = new Color(2.2, 0.3, 0.3);
@@ -121,6 +122,7 @@ export function BaseBuilder() {
   const dragging = useBase((s) => s.dragging);
   const hover = useBase((s) => s.hover);
   const armedNow = useGame((s) => s.armed);
+  const attackNow = useAttackOn();
   const selected = useBase((s) => s.selected);
   const root = useRef<Group>(null);
   const plate = useRef<Group>(null);
@@ -185,6 +187,10 @@ export function BaseBuilder() {
   useFrame((state) => {
     const g = root.current;
     if (!g || !baseStore.get().mode) return;
+    if (atk.on) {
+      baseStore.setHover(null);
+      return;
+    }
     const rect = state.gl.domElement.getBoundingClientRect();
     const x = ((baseLive.px - rect.left) / rect.width) * 2 - 1;
     const y = -((baseLive.py - rect.top) / rect.height) * 2 + 1;
@@ -256,7 +262,7 @@ export function BaseBuilder() {
       <GameLayer />
 
       {/* hover tile (skills drag, or just pointing) */}
-      {mode && hover && !armedNow && (
+      {mode && hover && !armedNow && !attackNow && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cellCenter(hover.gx, hover.gz)[0], GRID_Y + 0.02, cellCenter(hover.gx, hover.gz)[1]]}>
           <planeGeometry args={[CELL - 0.12, CELL - 0.12]} />
           <meshBasicMaterial color={dragging !== null ? (hover.ok ? OK : BAD) : IDLE} toneMapped={false} transparent opacity={dragging !== null ? 0.55 : 0.25} />

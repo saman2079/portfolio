@@ -58,6 +58,7 @@ export interface UniverseText {
       max: string;
       wave: string;
       callWave: string;
+      attack: { enter: string; exit: string; go: string; keys: string; touch: string; kills: string; hp: string; wave: string };
       repelled: string;
       raided: string;
       toast: { poor: string; max: string; full: string; nospace: string };
@@ -126,6 +127,16 @@ export const universeText: Record<Locale, UniverseText> = {
         max: "حداکثر سطح",
         wave: "موج",
         callWave: "فراخوانی موج",
+        attack: {
+          enter: "حالت حمله",
+          exit: "بازگشت",
+          go: "نقطه‌ی حمله",
+          keys: "حرکت: WASD · هدف: ماوس · شلیک: کلیک یا Space",
+          touch: "چپ: حرکت · راست: شلیک (هدف‌گیری خودکار)",
+          kills: "کشتار",
+          hp: "سلامت",
+          wave: "موج",
+        },
         repelled: "موج {n} دفع شد",
         raided: "پایگاه غارت شد؛ موج {n} دوباره می‌آید",
         toast: {
@@ -211,6 +222,16 @@ export const universeText: Record<Locale, UniverseText> = {
         max: "Max level",
         wave: "Wave",
         callWave: "Call wave",
+        attack: {
+          enter: "Attack mode",
+          exit: "Back",
+          go: "Go to attack",
+          keys: "Move: WASD · Aim: mouse · Fire: click or Space",
+          touch: "Left: move · Right: fire (auto-aim)",
+          kills: "Kills",
+          hp: "Health",
+          wave: "Wave",
+        },
         repelled: "Wave {n} repelled",
         raided: "The base was raided; wave {n} comes again",
         toast: {

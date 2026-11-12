@@ -10,6 +10,7 @@ import { SEGMENTS, flightLive, flightStore, type LandState } from "@/lib/store/f
 import type { DestinationId } from "@/lib/universe/destinations";
 import { EYE } from "./surface/terrain";
 import { baseStore } from "@/lib/lab/baseStore";
+import { atk } from "@/lib/lab/attackSim";
 import { buildFlightPath } from "./flightPath";
 import { SpeedStreaks } from "./SpeedStreaks";
 import { HULL_CENTER as HULL } from "./Cockpit";
@@ -124,6 +125,9 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
       eye: new Vector3(),
       buildEye: new Vector3(),
       qBuild: new Quaternion(),
+      attackEye: new Vector3(),
+      attackLook: new Vector3(),
+      qAttack: new Quaternion(),
       qOut: new Quaternion(),
       qIn: new Quaternion(),
       euler: new Euler(0, 0, 0, "YXZ"),
@@ -343,6 +347,19 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
         work.qBuild.setFromRotationMatrix(work.m);
         h.position.lerp(work.buildEye, bv);
         h.quaternion.slerp(work.qBuild, bv);
+      }
+      // attack mode: a third-person camera behind and above the character
+      live.attackView += ((live.attack ? 1 : 0) - live.attackView) * (1 - Math.exp(-dt * 3));
+      if (Math.abs(live.attackView - (live.attack ? 1 : 0)) < 0.001) live.attackView = live.attack ? 1 : 0;
+      const av = MathUtils.smootherstep(live.attackView, 0, 1);
+      if (av > 0) {
+        const k = state.size.width / state.size.height < 0.8 ? 1.3 : 1;
+        work.attackLook.set(atk.camX, GRID_CENTER.y + 1.1, atk.camZ - 1.5);
+        work.attackEye.set(atk.camX, GRID_CENTER.y + 9 * k, atk.camZ + 11.5 * k);
+        work.m.lookAt(work.attackEye, work.attackLook, UP);
+        work.qAttack.setFromRotationMatrix(work.m);
+        h.position.lerp(work.attackEye, av);
+        h.quaternion.slerp(work.qAttack, av);
       }
 
     }

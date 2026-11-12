@@ -3,9 +3,11 @@
 import { useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
-import { Color, type Group, type MeshBasicMaterial } from "three";
+import { Color, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { baseStore } from "@/lib/lab/baseStore";
 import type { Building } from "@/lib/lab/gameStore";
+import { CELL } from "@/lib/lab/baseStore";
+import { TYPES } from "@/lib/lab/gameStore";
 import { maxHp, resetSim, sim, updateSim } from "@/lib/lab/waveSim";
 
 /**
@@ -129,11 +131,19 @@ export function BuildingFx({ b, children }: { b: Building; children: ReactNode }
   const bar = useRef<Group>(null);
   const fill = useRef<Group>(null);
   const fillMat = useRef<MeshBasicMaterial>(null);
+  const alarm = useRef<Mesh>(null);
+  const alarmR = (Math.max(TYPES[b.type].w, TYPES[b.type].h) * CELL) / 2 + 0.7;
   const top = b.type === "hq" ? 6.6 : 3.3;
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const mx = maxHp(b);
     const hp = sim.hp[b.id] ?? mx;
     const down = hp <= 0;
+    // a pulsing red ring marks a building that is under attack: that is where to go
+    if (alarm.current) {
+      const hot = sim.active && !down && hp < mx;
+      alarm.current.visible = hot;
+      if (hot) alarm.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 7) * 0.06);
+    }
     if (wrap.current) wrap.current.scale.y += ((down ? 0.22 : 1) - wrap.current.scale.y) * (1 - Math.exp(-dt * 8));
     if (bar.current) bar.current.visible = hp < mx;
     if (fill.current) fill.current.scale.x = Math.max(0.001, Math.min(1, hp / mx));
@@ -145,6 +155,10 @@ export function BuildingFx({ b, children }: { b: Building; children: ReactNode }
   return (
     <>
       <group ref={wrap}>{children}</group>
+      <mesh ref={alarm} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.22, 0]} visible={false}>
+        <ringGeometry args={[alarmR - 0.12, alarmR, 48]} />
+        <meshBasicMaterial color={RED} toneMapped={false} transparent opacity={0.8} depthWrite={false} />
+      </mesh>
       <Billboard position={[0, top, 0]}>
         <group ref={bar} visible={false}>
           <mesh>
