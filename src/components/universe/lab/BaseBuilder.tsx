@@ -123,7 +123,9 @@ export function BaseBuilder() {
   const dragging = useBase((s) => s.dragging);
   const hover = useBase((s) => s.hover);
   const armedNow = useGame((s) => s.armed);
-  const attackNow = useAttackOn() || useScoutOn();
+  const attackOn = useAttackOn();
+  const scoutOn = useScoutOn();
+  const attackNow = attackOn || scoutOn;
   const selected = useBase((s) => s.selected);
   const root = useRef<Group>(null);
   const plate = useRef<Group>(null);
