@@ -26,7 +26,7 @@ import { AttackUi } from "./AttackUi";
 import { ScoutUi } from "./ScoutUi";
 import { BASES, SCOUT_COST, cooldownLeft, enterScout, scout, useScoutFound, useScoutOn } from "@/lib/lab/scoutSim";
 import { travelTo } from "@/lib/lab/raidSim";
-import { MAX_LEVEL, WEAPONS, WEAPON_IDS, buy, current, dmgMul, gapMul, levelOf, owned, select, upgrade, upgradeCost as weaponUpgradeCost, useArmoury } from "@/lib/lab/weapons";
+import { MAX_LEVEL as WEAPON_MAX, WEAPONS, WEAPON_IDS, buy, current, dmgMul, gapMul, levelOf, owned, select, upgrade, upgradeCost as weaponUpgradeCost, useArmoury } from "@/lib/lab/weapons";
 import { HUES } from "./Buildings";
 import { TYPE_HUE } from "./GameBuildings";
 
@@ -328,14 +328,14 @@ export function BuilderUi({ lang }: { lang: Locale }) {
                 const w = WEAPONS[id];
                 const own = owned(id);
                 const lvl = levelOf(id);
-                const next = lvl < MAX_LEVEL ? weaponUpgradeCost(id, lvl + 1) : null;
+                const next = lvl < WEAPON_MAX ? weaponUpgradeCost(id, lvl + 1) : null;
                 const dmg = Math.round(w.dmg * dmgMul(lvl));
                 const rate = (1 / (w.gap * gapMul(lvl))).toFixed(1);
                 return (
                   <div key={id} className={cn("rounded-lg border p-2.5", current() === id ? "border-orange-300/70" : "border-white/10")}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-paper-100">{gt.armory.names[id]}</p>
-                      {own && <span dir="ltr" className="font-mono text-[10px] text-orange-200">{gt.armory.level} {lvl}/{MAX_LEVEL}</span>}
+                      {own && <span dir="ltr" className="font-mono text-[10px] text-orange-200">{gt.armory.level} {lvl}/{WEAPON_MAX}</span>}
                     </div>
                     <p className="mt-0.5 text-[11px] text-paper-300">{gt.armory.info[id]}</p>
                     <p dir="ltr" className="mt-1 font-mono text-[10px] text-paper-300">
