@@ -237,7 +237,7 @@ export function BaseBuilder() {
   const pairs = useMemo(() => links(placed), [placed]);
 
   const onPress = (index: number) => (e: ThreeEvent<PointerEvent>) => {
-    if (!baseStore.get().mode || gameStore.get().armed) return;
+    if (!baseStore.get().mode || gameStore.get().armed || baseLive.armedTap) return;
     e.stopPropagation();
     baseLive.candidate = { index, x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
     baseLive.px = e.nativeEvent.clientX;

@@ -79,7 +79,15 @@ function set(patch: Partial<BaseState>) {
 }
 
 /** Pointer position and press candidate: read every frame by the 3D side, so not React state. */
-export const baseLive = { px: 0, py: 0, candidate: null as null | { index: number; x: number; y: number } };
+export const baseLive = {
+  px: 0,
+  py: 0,
+  candidate: null as null | { index: number; x: number; y: number },
+  /** where a press on the skill bar started (to tell a tap from a drag) */
+  fromBar: null as null | { x: number; y: number },
+  /** a skill was picked with a tap and waits for a tap on the map (shown in the UI as "in hand") */
+  armedTap: false,
+};
 
 export const occupant = (placed: Record<number, Cell>, gx: number, gz: number) => {
   for (const [k, c] of Object.entries(placed)) if (c.gx === gx && c.gz === gz) return Number(k);
