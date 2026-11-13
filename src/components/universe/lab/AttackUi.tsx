@@ -8,6 +8,7 @@ import { sim } from "@/lib/lab/waveSim";
 import { raid, travelTo } from "@/lib/lab/raidSim";
 import { BASES, scout, cooldownLeft } from "@/lib/lab/scoutSim";
 import { useGame } from "@/lib/lab/gameStore";
+import { WEAPONS, WEAPON_IDS, cycle, current, levelOf, ownedList, select, useArmoury, type WeaponId } from "@/lib/lab/weapons";
 import { cn } from "@/lib/utils";
 
 export interface AttackText {
@@ -20,6 +21,7 @@ export interface AttackText {
   wave: string;
   /** enemy base names, indexed by base id */
   names: string[];
+  weapons: Record<WeaponId, string>;
   left: string;
   win: string;
   fail: string;
@@ -40,6 +42,7 @@ const JOY_R = 52;
 /** DOM side of attack mode: keyboard + mouse input, PUBG-style joystick and fire button on touch, status. */
 export function AttackUi({ t }: { t: AttackText }) {
   const wave = useGame((s) => s.wave);
+  useArmoury();
   const [, tick] = useState(0);
   const [coarse, setCoarse] = useState(false);
   const thumb = useRef<HTMLDivElement>(null);
@@ -53,6 +56,9 @@ export function AttackUi({ t }: { t: AttackText }) {
       if (k) {
         atk.keys[k] = down;
         e.preventDefault();
+      } else if (down && /^Digit[1-6]$/.test(e.code)) {
+        const id = WEAPON_IDS[Number(e.code.slice(5)) - 1];
+        if (id) select(id);
       } else if (e.code === "Space") {
         atk.fire = down;
         e.preventDefault();
@@ -183,6 +189,26 @@ export function AttackUi({ t }: { t: AttackText }) {
         </div>
       )}
 
+      {/* weapons you own: tap or press 1-6 */}
+      {!coarse && (
+        <div className="pointer-events-auto absolute inset-x-0 bottom-14 flex justify-center gap-1.5 px-3">
+          {ownedList().map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => select(id)}
+              className={cn(
+                "universe-glass min-h-9 px-2.5 text-[11px] transition",
+                current() === id ? "border-orange-300/80 text-orange-200" : "text-paper-300 hover:border-orange-300/50"
+              )}
+            >
+              <span dir="ltr" className="me-1 font-mono text-paper-300">{WEAPON_IDS.indexOf(id) + 1}</span>
+              {t.weapons[id]}
+            </button>
+          ))}
+        </div>
+      )}
+
       {coarse ? (
         <>
           {/* joystick (left) and fire button (right), always on the physical sides like a shooter */}
@@ -216,6 +242,13 @@ export function AttackUi({ t }: { t: AttackText }) {
             onPointerCancel={() => (atk.fire = false)}
           >
             <Crosshair size={34} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => cycle()}
+            className="universe-glass pointer-events-auto absolute bottom-40 right-4 min-h-10 px-3 text-xs text-orange-200"
+          >
+            ⇄ {t.weapons[current()]} <span dir="ltr">L{levelOf(current())}</span>
           </button>
           <p className={cn("absolute inset-x-0 bottom-3 text-center text-[11px] text-paper-300")}>{t.touch}</p>
         </>

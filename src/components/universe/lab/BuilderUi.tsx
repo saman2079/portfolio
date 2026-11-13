@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Crosshair, Move, Radar, RotateCcw, X, Zap } from "lucide-react";
+import { ArrowUp, Check, Crosshair, Move, Radar, RotateCcw, Swords, X, Zap } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { baseLive, baseStore, links, power, useBase } from "@/lib/lab/baseStore";
@@ -26,6 +26,7 @@ import { AttackUi } from "./AttackUi";
 import { ScoutUi } from "./ScoutUi";
 import { BASES, SCOUT_COST, cooldownLeft, enterScout, scout, useScoutFound, useScoutOn } from "@/lib/lab/scoutSim";
 import { travelTo } from "@/lib/lab/raidSim";
+import { MAX_LEVEL, WEAPONS, WEAPON_IDS, buy, current, dmgMul, gapMul, levelOf, owned, select, upgrade, upgradeCost, useArmoury } from "@/lib/lab/weapons";
 import { HUES } from "./Buildings";
 import { TYPE_HUE } from "./GameBuildings";
 
@@ -51,6 +52,8 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   const chip = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<"skills" | "game">("game");
   const [, tick] = useState(0);
+  const [armory, setArmory] = useState(false);
+  useArmoury();
   const g = useGame((s) => s);
   const gt = u.game;
   const attackOn = useAttackOn();
@@ -133,7 +136,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
   }, [mode]);
 
   if (!mode) return null;
-  if (attackOn) return <AttackUi t={{ ...gt.attack, names: gt.scout.names }} />;
+  if (attackOn) return <AttackUi t={{ ...gt.attack, names: gt.scout.names, weapons: gt.armory.names }} />;
   if (scoutOn) return <ScoutUi t={gt.scout} />;
 
   const total = skills.length;
@@ -323,6 +326,63 @@ export function BuilderUi({ lang }: { lang: Locale }) {
         </div>
       )}
 
+      {armory && (
+        <div className="universe-glass pointer-events-auto absolute inset-x-3 top-24 z-30 max-h-[68vh] overflow-y-auto p-3 text-xs sm:inset-x-auto sm:end-5 sm:w-96">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold text-orange-200">{gt.armory.title}</p>
+            <button type="button" onClick={() => setArmory(false)} aria-label="close" className="grid size-8 place-items-center rounded-md text-paper-300 hover:text-paper-100">
+              <X size={16} aria-hidden />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {WEAPON_IDS.map((id) => {
+              const w = WEAPONS[id];
+              const own = owned(id);
+              const lvl = levelOf(id);
+              const next = lvl < MAX_LEVEL ? upgradeCost(id, lvl + 1) : null;
+              const dmg = Math.round(w.dmg * dmgMul(lvl));
+              const rate = (1 / (w.gap * gapMul(lvl))).toFixed(1);
+              return (
+                <div key={id} className={`rounded-lg border p-2.5 ${current() === id ? "border-orange-300/70" : "border-white/10"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-paper-100">{gt.armory.names[id]}</p>
+                    {own && <span dir="ltr" className="font-mono text-[10px] text-orange-200">{gt.armory.level} {lvl}/{MAX_LEVEL}</span>}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-paper-300">{gt.armory.info[id]}</p>
+                  <p dir="ltr" className="mt-1 font-mono text-[10px] text-paper-300">
+                    {gt.armory.dmg} {dmg}{w.pellets > 1 ? `×${w.pellets}` : ""} · {gt.armory.rate} {rate} · {gt.armory.range} {Math.round(w.speed * w.life)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {!own ? (
+                      <button type="button" onClick={() => buy(id)} className="min-h-9 rounded-lg border border-cyan-400/80 bg-cyan-500/10 px-3 font-semibold text-cyan-200">
+                        {gt.armory.buy} <span dir="ltr">◆{w.price.c}{w.price.e ? ` ⚡${w.price.e}` : ""}</span>
+                      </button>
+                    ) : (
+                      <>
+                        {current() === id ? (
+                          <span className="inline-flex min-h-9 items-center px-1 text-orange-200">{gt.armory.equipped}</span>
+                        ) : (
+                          <button type="button" onClick={() => select(id)} className="min-h-9 rounded-lg border border-white/25 px-3 text-paper-100">
+                            {gt.armory.equip}
+                          </button>
+                        )}
+                        {next ? (
+                          <button type="button" onClick={() => upgrade(id)} className="min-h-9 rounded-lg border border-emerald-400/80 bg-emerald-500/10 px-3 font-semibold text-emerald-200">
+                            {gt.armory.upgrade} <span dir="ltr">◆{next.c}{next.e ? ` ⚡${next.e}` : ""}</span>
+                          </button>
+                        ) : (
+                          <span className="inline-flex min-h-9 items-center px-1 text-paper-300">{gt.armory.max}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* discovered enemy bases: attack one to take its loot */}
       {foundCount > 0 && (
         <div className="universe-glass pointer-events-auto absolute bottom-[12.5rem] end-3 w-60 p-2.5 text-xs sm:bottom-[14.5rem] sm:end-5">
@@ -356,6 +416,13 @@ export function BuilderUi({ lang }: { lang: Locale }) {
 
       {/* top-corner buttons */}
       <div className="pointer-events-auto absolute bottom-[8.5rem] end-3 flex gap-2 sm:bottom-40 sm:end-5">
+        <button
+          type="button"
+          onClick={() => setArmory((v) => !v)}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-orange-400/80 bg-orange-500/10 px-3 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20"
+        >
+          <Swords size={14} aria-hidden /> {gt.armory.title}
+        </button>
         <button
           type="button"
           onClick={() => enterScout()}

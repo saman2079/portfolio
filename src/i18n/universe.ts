@@ -59,6 +59,7 @@ export interface UniverseText {
       wave: string;
       callWave: string;
       scout: { enter: string; exit: string; keys: string; touch: string; battery: string; found: string; discovered: string; names: string[]; bases: string; power: string; attack: string; cooldown: string; wave: string };
+      armory: { title: string; buy: string; upgrade: string; equip: string; equipped: string; level: string; dmg: string; rate: string; range: string; max: string; names: Record<"rifle" | "machinegun" | "shotgun" | "sniper" | "rpg" | "minigun", string>; info: Record<"rifle" | "machinegun" | "shotgun" | "sniper" | "rpg" | "minigun", string> };
       attack: { enter: string; exit: string; go: string; keys: string; touch: string; kills: string; hp: string; wave: string; left: string; win: string; fail: string };
       repelled: string;
       raided: string;
@@ -143,11 +144,32 @@ export const universeText: Record<Locale, UniverseText> = {
           cooldown: "بازسازی {m} دقیقه",
           wave: "موج در جریان است",
         },
+        armory: {
+          title: "اسلحه‌خانه",
+          buy: "خرید",
+          upgrade: "ارتقا",
+          equip: "انتخاب",
+          equipped: "در دست",
+          level: "سطح",
+          dmg: "آسیب",
+          rate: "شلیک/ثانیه",
+          range: "برد",
+          max: "حداکثر",
+          names: { rifle: "تفنگ پالسی", machinegun: "مسلسل", shotgun: "شاتگان", sniper: "تک‌تیرانداز ریلی", rpg: "آر‌پی‌جی", minigun: "مینی‌گان" },
+          info: {
+            rifle: "سلاح پایه؛ متعادل و رایگان",
+            machinegun: "رگبار سریع با پراکندگی کم",
+            shotgun: "چند ساچمه در یک شلیک؛ مرگبار از نزدیک",
+            sniper: "یک گلوله‌ی سنگین که از چند دشمن رد می‌شود",
+            rpg: "موشک با انفجار منطقه‌ای",
+            minigun: "رگبار بسیار سریع؛ سنگین‌ترین سلاح",
+          },
+        },
         attack: {
           enter: "حالت حمله",
           exit: "بازگشت",
           go: "نقطه‌ی حمله",
-          keys: "حرکت: WASD · هدف: ماوس · شلیک: کلیک یا Space",
+          keys: "حرکت: WASD · هدف: ماوس · شلیک: کلیک یا Space · سلاح: ۱ تا ۶",
           touch: "چپ: حرکت · راست: شلیک (هدف‌گیری خودکار)",
           kills: "کشتار",
           hp: "سلامت",
@@ -256,11 +278,32 @@ export const universeText: Record<Locale, UniverseText> = {
           cooldown: "rebuilding {m} min",
           wave: "A wave is attacking",
         },
+        armory: {
+          title: "Armoury",
+          buy: "Buy",
+          upgrade: "Upgrade",
+          equip: "Equip",
+          equipped: "Equipped",
+          level: "Level",
+          dmg: "Damage",
+          rate: "Shots/s",
+          range: "Range",
+          max: "Max",
+          names: { rifle: "Pulse Rifle", machinegun: "Machine Gun", shotgun: "Scatter Shotgun", sniper: "Rail Sniper", rpg: "RPG Launcher", minigun: "Minigun" },
+          info: {
+            rifle: "The basic weapon: balanced and free",
+            machinegun: "Fast bursts with a little spread",
+            shotgun: "Many pellets per shot; deadly up close",
+            sniper: "One heavy round that pierces several enemies",
+            rpg: "A rocket with an area explosion",
+            minigun: "Extremely fast fire; the heaviest weapon",
+          },
+        },
         attack: {
           enter: "Attack mode",
           exit: "Back",
           go: "Go to attack",
-          keys: "Move: WASD · Aim: mouse · Fire: click or Space",
+          keys: "Move: WASD · Aim: mouse · Fire: click or Space · Weapon: 1-6",
           touch: "Left: move · Right: fire (auto-aim)",
           kills: "Kills",
           hp: "Health",

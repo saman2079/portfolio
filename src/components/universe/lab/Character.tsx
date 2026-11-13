@@ -3,9 +3,10 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
-import { Color, Matrix4, Plane, Ray, Vector3, type Group, type Mesh } from "three";
+import { Color, Matrix4, Plane, Ray, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { baseLive, baseStore } from "@/lib/lab/baseStore";
-import { MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
+import { MAX_BLASTS, MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
+import { WEAPONS } from "@/lib/lab/weapons";
 
 /**
  * The player's character in attack mode, a placeholder soldier: dark armour with a glowing
@@ -25,6 +26,8 @@ export function CharacterLayer() {
   const flash = useRef<Mesh>(null);
   const bullets = useRef<(Mesh | null)[]>([]);
   const reticle = useRef<Mesh>(null);
+  const gun = useRef<Group>(null);
+  const blasts = useRef<(Mesh | null)[]>([]);
   const bar = useRef<Group>(null);
   const fill = useRef<Group>(null);
   const work = useMemo(() => ({ ray: new Ray(), inv: new Matrix4(), plane: new Plane(new Vector3(0, 1, 0), 0), hit: new Vector3() }), []);
@@ -89,7 +92,25 @@ export function CharacterLayer() {
       m.visible = true;
       m.position.set(b.x, 1.3 + gy, b.z);
       m.rotation.y = Math.atan2(b.vx, b.vz);
+      const w = WEAPONS[b.w];
+      m.scale.set(w.size[0], w.size[0], w.size[1]);
+      (m.material as MeshBasicMaterial).color.setRGB(w.color[0], w.color[1], w.color[2]);
     }
+    for (let i = 0; i < MAX_BLASTS; i++) {
+      const m = blasts.current[i];
+      if (!m) continue;
+      const bl = atk.blasts[i];
+      if (!bl) {
+        m.visible = false;
+        continue;
+      }
+      m.visible = true;
+      m.position.set(bl.x, 1 + groundAt(bl.x, bl.z), bl.z);
+      const k = Math.min(1, bl.t / 0.25);
+      m.scale.setScalar(Math.max(0.01, bl.r * (0.3 + 0.7 * k)));
+      (m.material as MeshBasicMaterial).opacity = 0.7 * (1 - bl.t / 0.4);
+    }
+    if (gun.current) gun.current.scale.set(...WEAPONS[atk.weapon].gun);
     if (reticle.current) {
       reticle.current.visible = atk.useMouse && atk.hasAim;
       reticle.current.position.set(atk.aimX, 0.2 + gy, atk.aimZ);
@@ -124,7 +145,7 @@ export function CharacterLayer() {
             <boxGeometry args={[0.2, 0.7, 0.25]} />
             <meshStandardMaterial {...armour} />
           </mesh>
-          <group position={[0.5, 0.35, 0.3]}>
+          <group ref={gun} position={[0.5, 0.35, 0.3]}>
             <mesh position={[0, 0, 0.1]}>
               <boxGeometry args={[0.2, 0.22, 0.9]} />
               <meshStandardMaterial {...plate} />
@@ -172,6 +193,13 @@ export function CharacterLayer() {
         <mesh key={i} ref={(el) => void (bullets.current[i] = el)} visible={false}>
           <boxGeometry args={[0.1, 0.1, 0.7]} />
           <meshBasicMaterial color={BULLET} toneMapped={false} />
+        </mesh>
+      ))}
+
+      {Array.from({ length: MAX_BLASTS }, (_, i) => (
+        <mesh key={i} ref={(el) => void (blasts.current[i] = el)} visible={false}>
+          <sphereGeometry args={[1, 16, 12]} />
+          <meshBasicMaterial color={new Color(3.6, 1.6, 0.4)} toneMapped={false} transparent opacity={0.7} depthWrite={false} />
         </mesh>
       ))}
 

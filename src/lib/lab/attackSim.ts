@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { CELL, PLATFORM, baseStore } from "@/lib/lab/baseStore";
 import { TYPES, gameStore } from "@/lib/lab/gameStore";
 import { centreOf, maxHp, sim } from "@/lib/lab/waveSim";
+import { WEAPONS, current, dmgMul, gapMul, levelOf, type WeaponId } from "@/lib/lab/weapons";
 import { flightLive } from "@/lib/store/flightStore";
 import { heightAt, paramsFor } from "@/components/universe/surface/terrain";
 import { DESTINATIONS } from "@/lib/universe/destinations";
@@ -22,16 +23,21 @@ export interface Bullet {
   vx: number;
   vz: number;
   life: number;
+  dmg: number;
+  /** enemies it can still pass through */
+  pierce: number;
+  splash: number;
+  w: WeaponId;
+  /** ids already hit (a piercing bullet hits each enemy once) */
+  hit: number[];
 }
-export const MAX_BULLETS = 40;
+export const MAX_BULLETS = 64;
+export const MAX_BLASTS = 6;
 
 /** set by scoutSim: true while the drone flies (the two modes exclude each other) */
 export const scoutBusy = { on: false };
 
 const SPEED = 9;
-const BULLET_SPEED = 46;
-const BULLET_DMG = 9;
-const FIRE_GAP = 0.13;
 const REACH = 1.8;
 /** attack mode is open-world: you may walk this far from the plate centre (the enemy bases are inside it) */
 const LIMIT = 185;
@@ -69,6 +75,10 @@ export const atk = {
   aimX: 0,
   aimZ: 0,
   bullets: [] as Bullet[],
+  /** rocket explosions being drawn: position, age, radius */
+  blasts: [] as { x: number; z: number; t: number; r: number }[],
+  /** the weapon in hand, for the model */
+  weapon: "rifle" as WeaponId,
   kills: 0,
   onExit: null as null | (() => void),
 };
@@ -115,6 +125,7 @@ export function enterAttack(at?: { x: number; z: number }) {
   atk.hp = atk.max;
   atk.kills = 0;
   atk.bullets = [];
+  atk.blasts = [];
   atk.on = true;
   flightLive.attack = true;
   notify();
@@ -237,11 +248,33 @@ export function updateAttack(rawDt: number) {
     const dx = aimX - atk.x;
     const dz = aimZ - atk.z;
     const d = Math.hypot(dx, dz) || 1;
-    if (atk.bullets.length < MAX_BULLETS) {
-      atk.bullets.push({ x: atk.x + (dx / d) * 1.0, z: atk.z + (dz / d) * 1.0, vx: (dx / d) * BULLET_SPEED, vz: (dz / d) * BULLET_SPEED, life: 0.75 });
+    const wid = current();
+    const w = WEAPONS[wid];
+    const lvl = levelOf(wid);
+    const base = Math.atan2(dx, dz);
+    atk.weapon = wid;
+    for (let p = 0; p < w.pellets && atk.bullets.length < MAX_BULLETS; p++) {
+      const a = base + (Math.random() - 0.5) * 2 * w.spread;
+      atk.bullets.push({
+        x: atk.x + (dx / d) * 1.0,
+        z: atk.z + (dz / d) * 1.0,
+        vx: Math.sin(a) * w.speed,
+        vz: Math.cos(a) * w.speed,
+        life: w.life,
+        dmg: w.dmg * dmgMul(lvl),
+        pierce: w.pierce,
+        splash: w.splash,
+        w: wid,
+        hit: [],
+      });
     }
-    atk.fireCd = FIRE_GAP;
+    atk.fireCd = w.gap * gapMul(lvl);
     atk.flash = 0.06;
+  }
+  atk.weapon = current();
+  for (let i = atk.blasts.length - 1; i >= 0; i--) {
+    atk.blasts[i]!.t += dt;
+    if (atk.blasts[i]!.t > 0.4) atk.blasts.splice(i, 1);
   }
 
   for (let i = atk.bullets.length - 1; i >= 0; i--) {
@@ -252,16 +285,34 @@ export function updateAttack(rawDt: number) {
     let gone = b.life <= 0;
     if (!gone) {
       const strike = (e: (typeof sim.enemies)[number]) => {
-        if (gone || e.hp <= 0) return;
+        if (gone || e.hp <= 0 || b.hit.includes(e.id)) return;
         if (Math.hypot(e.x - b.x, e.z - b.z) < (e.kind === "brute" ? 1.4 : 1.0)) {
-          e.hp -= BULLET_DMG;
-          if (e.hp <= 0) atk.kills++;
-          gone = true;
+          if (!b.splash) {
+            e.hp -= b.dmg;
+            if (e.hp <= 0) atk.kills++;
+          }
+          b.hit.push(e.id);
+          if (b.pierce > 0) b.pierce--;
+          else gone = true;
         }
       };
       eachEnemy(strike);
     }
-    if (gone) atk.bullets.splice(i, 1);
+    if (gone) {
+      // a rocket blows up where it ends: everything in the radius takes damage, less toward the edge
+      if (b.splash && atk.blasts.length < MAX_BLASTS) {
+        atk.blasts.push({ x: b.x, z: b.z, t: 0, r: b.splash });
+        eachEnemy((e) => {
+          if (e.hp <= 0) return;
+          const d = Math.hypot(e.x - b.x, e.z - b.z);
+          if (d < b.splash) {
+            e.hp -= b.dmg * (1 - 0.6 * (d / b.splash));
+            if (e.hp <= 0) atk.kills++;
+          }
+        });
+      }
+      atk.bullets.splice(i, 1);
+    }
   }
 
   // raiders that reach the character hurt; dead = back at the command centre
