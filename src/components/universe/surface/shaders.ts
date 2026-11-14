@@ -28,6 +28,8 @@ uniform vec3 uSun;
 uniform float uAmp;
 uniform float uFog;
 uniform float uAmb;
+uniform vec3 uSeen[40];
+uniform float uFow;
 #ifdef USE_TEX
 uniform sampler2D uTex;
 uniform sampler2D uNorm;
@@ -68,7 +70,17 @@ void main() {
   float grain = step(0.985, vnoise(vec3(vWorld.xz * 14.0, 7.0)));
   lit += uC * grain * (0.25 + diff) * 0.8;
   float f = 1.0 - exp(-vDist * uFog);
-  gl_FragColor = vec4(mix(lit, uHorizon, clamp(f, 0.0, 1.0)), 1.0);
+  vec3 outc = mix(lit, uHorizon, clamp(f, 0.0, 1.0));
+  // fog of war (base builder): ground nobody has seen yet is black
+  if (uFow > 0.001) {
+    float seen = 0.0;
+    for (int i = 0; i < 40; i++) {
+      vec3 c = uSeen[i];
+      if (c.z > 0.0) seen = max(seen, 1.0 - smoothstep(c.z * 0.7, c.z, distance(vWorld.xz, c.xy)));
+    }
+    outc = mix(outc, vec3(0.004, 0.008, 0.014), uFow * (1.0 - seen));
+  }
+  gl_FragColor = vec4(outc, 1.0);
 }
 `;
 

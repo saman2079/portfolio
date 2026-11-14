@@ -47,13 +47,21 @@ export function AttackUi({ t }: { t: AttackText }) {
   const [coarse, setCoarse] = useState(false);
   const thumb = useRef<HTMLDivElement>(null);
   const joyId = useRef<number | null>(null);
+  const lookId = useRef<number | null>(null);
+  const lookX = useRef(0);
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
     const id = window.setInterval(() => tick((n) => n + 1), 200);
     const key = (down: boolean) => (e: KeyboardEvent) => {
       const k = KEYS[e.code];
-      if (k) {
+      if (e.code === "KeyQ" || e.code === "KeyE") {
+        // turn the camera around the character: Q left, E right
+        const dir = e.code === "KeyQ" ? 1 : -1;
+        if (down) atk.turn = dir;
+        else if (atk.turn === dir) atk.turn = 0;
+        e.preventDefault();
+      } else if (k) {
         atk.keys[k] = down;
         e.preventDefault();
       } else if (down && /^Digit[1-6]$/.test(e.code)) {
@@ -70,7 +78,10 @@ export function AttackUi({ t }: { t: AttackText }) {
       baseLive.px = e.clientX;
       baseLive.py = e.clientY;
       if (e.pointerType === "mouse") atk.useMouse = true;
+      // right button held: drag to orbit the camera
+      if (e.pointerType === "mouse" && e.buttons & 2) atk.yaw -= e.movementX * 0.006;
     };
+    const noMenu = (e: Event) => e.preventDefault();
     const pd = (e: PointerEvent) => {
       if (e.pointerType !== "mouse" || e.button !== 0) return;
       baseLive.px = e.clientX;
@@ -84,7 +95,9 @@ export function AttackUi({ t }: { t: AttackText }) {
     const blur = () => {
       atk.keys = { u: false, d: false, l: false, r: false };
       atk.fire = false;
+      atk.turn = 0;
     };
+    window.addEventListener("contextmenu", noMenu);
     window.addEventListener("keydown", kd);
     window.addEventListener("keyup", ku);
     window.addEventListener("pointermove", pm);
@@ -99,6 +112,8 @@ export function AttackUi({ t }: { t: AttackText }) {
       window.removeEventListener("pointerdown", pd);
       window.removeEventListener("pointerup", pu);
       window.removeEventListener("blur", blur);
+      window.removeEventListener("contextmenu", noMenu);
+      atk.turn = 0;
       atk.joy = { x: 0, y: 0 };
       atk.fire = false;
     };
@@ -211,6 +226,23 @@ export function AttackUi({ t }: { t: AttackText }) {
 
       {coarse ? (
         <>
+          {/* drag anywhere on the right side to turn the camera around the character */}
+          <div
+            className="pointer-events-auto absolute inset-y-0 right-0 top-1/4 w-3/5"
+            style={{ touchAction: "none" }}
+            onPointerDown={(e) => {
+              lookId.current = e.pointerId;
+              lookX.current = e.clientX;
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              if (lookId.current !== e.pointerId) return;
+              atk.yaw -= (e.clientX - lookX.current) * 0.008;
+              lookX.current = e.clientX;
+            }}
+            onPointerUp={() => (lookId.current = null)}
+            onPointerCancel={() => (lookId.current = null)}
+          />
           {/* joystick (left) and fire button (right), always on the physical sides like a shooter */}
           <div
             dir="ltr"

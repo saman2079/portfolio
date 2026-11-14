@@ -28,6 +28,7 @@ export function DroneLayer() {
   const ring = useRef<Mesh>(null);
   const bases = useRef<(Group | null)[]>([]);
   const beacons = useRef<(Mesh | null)[]>([]);
+  const flak = useRef<(Group | null)[]>([]);
 
   useFrame((state, dt) => {
     if (scout.on && !baseStore.get().mode) exitScout();
@@ -51,6 +52,19 @@ export function DroneLayer() {
       ring.current.visible = scout.on;
       ring.current.position.set(scout.x, scout.gy + 0.25, scout.z);
       ring.current.scale.setScalar(1 + Math.sin(t * 4) * 0.03);
+    }
+    // red fire from the bases that are shooting at the drone
+    for (let i = 0; i < BASES.length; i++) {
+      const f = flak.current[i];
+      if (!f) continue;
+      const on = scout.on && scout.fire.includes(i) && Math.sin(t * 40 + i) > -0.3;
+      f.visible = on;
+      if (on) {
+        const b = BASES[i]!;
+        f.position.set(b.x, b.y + 7, b.z);
+        f.lookAt(scout.x, scout.y, scout.z);
+        f.scale.z = Math.hypot(scout.x - b.x, scout.y - b.y - 7, scout.z - b.z);
+      }
     }
     for (let i = 0; i < BASES.length; i++) {
       const b = bases.current[i];
@@ -97,6 +111,15 @@ export function DroneLayer() {
           ))}
         </group>
       </group>
+
+      {BASES.map((b, i) => (
+        <group key={`f${b.id}`} ref={(el) => void (flak.current[i] = el)} visible={false}>
+          <mesh position={[0, 0, 0.5]}>
+            <boxGeometry args={[0.12, 0.12, 1]} />
+            <meshBasicMaterial color={RED} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
 
       {/* the area the drone is uncovering */}
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} visible={false}>

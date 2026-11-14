@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, Crosshair, MapPin, Move, Radar, RotateCcw, Swords, X, Zap } from "lucide-react";
+import { ArrowUp, Check, Crosshair, LocateFixed, MapPin, Move, Radar, RotateCcw, Swords, X, Zap } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import { universeText } from "@/i18n/universe";
 import { baseLive, baseStore, links, power, useBase } from "@/lib/lab/baseStore";
@@ -65,7 +65,20 @@ export function BuilderUi({ lang }: { lang: Locale }) {
     if (!mode) return;
     gameStore.init();
     const id = window.setInterval(() => tick((n) => n + 1), 1000);
+    const PAN: Record<string, "u" | "d" | "l" | "r"> = { KeyW: "u", ArrowUp: "u", KeyS: "d", ArrowDown: "d", KeyA: "l", ArrowLeft: "l", KeyD: "r", ArrowRight: "r" };
+    const keyUp = (e: KeyboardEvent) => {
+      const d = PAN[e.code];
+      if (d) baseLive.panKeys[d] = false;
+    };
+    const blurKeys = () => {
+      baseLive.panKeys = { u: false, d: false, l: false, r: false };
+    };
     const key = (e: KeyboardEvent) => {
+      const dir = PAN[e.code];
+      if (dir && !atk.on && !scout.on && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        baseLive.panKeys[dir] = true;
+        e.preventDefault();
+      }
       if (e.key === "Escape") {
         gameStore.cancel();
         if (baseLive.armedTap) {
@@ -77,10 +90,24 @@ export function BuilderUi({ lang }: { lang: Locale }) {
         baseStore.select(null);
       }
     };
+    const wheel = (e: WheelEvent) => {
+      if (atk.on || scout.on || (e.target as HTMLElement | null)?.tagName !== "CANVAS") return;
+      baseLive.zoom = Math.min(1.9, Math.max(0.6, baseLive.zoom * Math.exp(e.deltaY * 0.0012)));
+    };
     window.addEventListener("keydown", key);
+    window.addEventListener("keyup", keyUp);
+    window.addEventListener("blur", blurKeys);
+    window.addEventListener("wheel", wheel, { passive: true });
     return () => {
       window.clearInterval(id);
       window.removeEventListener("keydown", key);
+      window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("blur", blurKeys);
+      window.removeEventListener("wheel", wheel);
+      baseLive.panKeys = { u: false, d: false, l: false, r: false };
+      baseLive.panX = 0;
+      baseLive.panZ = 0;
+      baseLive.zoom = 1;
       gameStore.cancel();
     };
   }, [mode]);
@@ -98,8 +125,11 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       snap.b = baseStore.get().selected;
     };
     window.addEventListener("pointerdown", before, true);
+    // dragging empty ground pans the strategy camera; a tap (little movement) still builds or selects
+    let press: null | { x: number; y: number; lx: number; ly: number; canvas: boolean; moved: boolean } = null;
     const down = (e: PointerEvent) => {
       if (atk.on || scout.on) return;
+      press = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, canvas: (e.target as HTMLElement | null)?.tagName === "CANVAS", moved: false };
       baseLive.px = e.clientX;
       baseLive.py = e.clientY;
     };
@@ -108,6 +138,17 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       baseLive.px = e.clientX;
       baseLive.py = e.clientY;
       place(e.clientX, e.clientY);
+      if (press && press.canvas && !baseLive.candidate && baseStore.get().dragging === null && (e.buttons & 7) !== 0) {
+        if (!press.moved && (e.buttons & 6 || Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8)) press.moved = true;
+        if (press.moved) {
+          const k = window.innerWidth / window.innerHeight < 0.8 ? 1.55 : 1;
+          const wpp = (34.9 * baseLive.zoom * k) / window.innerHeight;
+          baseLive.panX -= (e.clientX - press.lx) * wpp;
+          baseLive.panZ -= (e.clientY - press.ly) * wpp * 1.35;
+        }
+        press.lx = e.clientX;
+        press.ly = e.clientY;
+      }
       const c = baseLive.candidate;
       if (c && baseStore.get().dragging === null && Math.hypot(e.clientX - c.x, e.clientY - c.y) > 6) {
         baseStore.startDrag(c.index);
@@ -118,6 +159,12 @@ export function BuilderUi({ lang }: { lang: Locale }) {
       const st = baseStore.get();
       const c = baseLive.candidate;
       baseLive.candidate = null;
+      if (press?.moved) {
+        // that was a camera drag, not a tap
+        press = null;
+        return;
+      }
+      press = null;
       if (gameStore.get().armed) {
         // a colony building is waiting: a tap on the map drops it on the cell under the pointer
         if ((e.target as HTMLElement | null)?.tagName === "CANVAS" && st.hover) gameStore.placeAt(st.hover.gx, st.hover.gz);
@@ -205,6 +252,7 @@ export function BuilderUi({ lang }: { lang: Locale }) {
     ...(foundCount > 0
       ? [{ key: "bases", Icon: MapPin, label: gt.scout.bases, extra: `${foundCount}/${BASES.length}`, cls: "border-red-300/50 bg-black/40 text-red-200 hover:bg-red-500/10", on: () => setPanel((v) => (v === "bases" ? null : "bases")) }]
       : []),
+    { key: "center", Icon: LocateFixed, label: gt.recenter, cls: "border-white/25 bg-black/40 text-paper-100 hover:border-cyan-300/60", on: () => { baseLive.panX = 0; baseLive.panZ = 0; baseLive.zoom = 1; } },
     { key: "reset", Icon: RotateCcw, label: u.reset, cls: "border-white/25 bg-black/40 text-paper-100 hover:border-cyan-300/60", on: () => baseStore.reset() },
     { key: "exit", Icon: X, label: u.exit, cls: "border-orange-400/80 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20", on: () => baseStore.setMode(false) },
   ];
@@ -282,6 +330,9 @@ export function BuilderUi({ lang }: { lang: Locale }) {
               {sim.result.e !== 0 && `⚡${sim.result.e > 0 ? "+" : ""}${sim.result.e}`}
             </span>
           </div>
+        )}
+        {scout.lostAt > 0 && Date.now() - scout.lostAt < 6000 && (
+          <div className="rounded-md border border-red-400/50 bg-black/75 px-3 py-1.5 text-xs text-red-200 backdrop-blur">{gt.scout.lost}</div>
         )}
         {done && (
           <div className="universe-glass flex items-center gap-3 border-emerald-300/40 px-4 py-2">

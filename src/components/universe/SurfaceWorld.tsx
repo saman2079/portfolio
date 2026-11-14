@@ -1,5 +1,8 @@
 "use client";
 
+import { baseStore, PLATFORM } from "@/lib/lab/baseStore";
+import { BASES, scout } from "@/lib/lab/scoutSim";
+import { explore, loadExplore } from "@/lib/lab/explore";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
@@ -115,6 +118,7 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
   const dome = useRef<Mesh>(null);
   const spores = useRef<Points>(null);
   const camPos = useMemo(() => new Vector3(), []);
+  const fogKey = useRef(-1);
 
   const world = useMemo(() => {
     const params = paramsFor(cfg.seed, cfg.id);
@@ -147,6 +151,8 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
         uAmp: { value: params.amp },
         uFog: { value: storm ? 0.006 : 0.0075 },
         uAmb: { value: storm ? 1.15 : 0.5 },
+        uSeen: { value: Array.from({ length: 40 }, () => new Vector3()) },
+        uFow: { value: 0 },
         ...(storm
           ? {
               uTex: { value: stormTex("ground.jpg", aniso, { data: true }) },
@@ -362,6 +368,26 @@ function Surface({ cfg, tier }: { cfg: (typeof DESTINATIONS)[number]; tier: "hig
     }
     if (!on) return;
     const t = state.clock.elapsedTime;
+    // fog of war on the Lab while the base builder is open
+    if (world.storm) {
+      const fu = world.terrain.uniforms;
+      const want = baseStore.get().mode ? 1 : 0;
+      fu["uFow"]!.value += (want - (fu["uFow"]!.value as number)) * 0.08;
+      loadExplore();
+      const key = explore.ver * 8 + scout.found.length;
+      if (key !== fogKey.current) {
+        fogKey.current = key;
+        const arr = fu["uSeen"]!.value as Vector3[];
+        let n = 0;
+        arr[n++]!.set(PLATFORM.x, PLATFORM.z, PLATFORM.r + 16);
+        for (const id of scout.found) {
+          const b = BASES[id];
+          if (b && n < 40) arr[n++]!.set(b.x, b.z, 52);
+        }
+        for (const p of explore.trail) if (n < 40) arr[n++]!.set(p[0], p[1], p[2]);
+        while (n < 40) arr[n++]!.set(0, 0, 0);
+      }
+    }
     state.camera.getWorldPosition(camPos);
     if (dome.current) dome.current.position.set(camPos.x, camPos.y + EYE, camPos.z);
     if (world.sky instanceof ShaderMaterial) {

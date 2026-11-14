@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { PLATFORM, baseStore } from "@/lib/lab/baseStore";
 import { atk, scoutBusy } from "@/lib/lab/attackSim";
+import { reveal } from "@/lib/lab/explore";
 import { gameStore, type Res } from "@/lib/lab/gameStore";
 import { DESTINATIONS } from "@/lib/universe/destinations";
 import { flightLive } from "@/lib/store/flightStore";
@@ -15,6 +16,10 @@ import { heightAt, paramsFor } from "@/components/universe/surface/terrain";
 export const SCOUT_COST: Res = { c: 0, e: 25 };
 export const DURATION = 45;
 export const REVEAL = 30;
+/** the flak of a standing enemy base reaches this far (more than the reveal radius, so you have to risk it) */
+export const FLAK_R = 34;
+export const DRONE_HP = 60;
+const FLAK_DPS = 11;
 const SPEED = 24;
 const ALT = 11;
 /** how far from the plate centre the drone may go */
@@ -54,6 +59,11 @@ export const scout = {
   vz: 0,
   yaw: 0,
   left: DURATION,
+  hp: DRONE_HP,
+  /** ids of the bases shooting at the drone right now */
+  fire: [] as number[],
+  /** when the last drone was shot down (ms since epoch), for the banner */
+  lostAt: 0,
   keys: { u: false, d: false, l: false, r: false },
   joy: { x: 0, y: 0 },
   /** ids of the bases found so far (saved) */
@@ -152,7 +162,11 @@ export function enterScout(): boolean {
   scout.vx = scout.vz = 0;
   scout.yaw = Math.PI;
   scout.left = DURATION;
+  scout.hp = DRONE_HP;
+  scout.fire = [];
   scout.last = -1;
+  atk.yaw = 0;
+  atk.turn = 0;
   scout.on = true;
   scoutBusy.on = true;
   atk.camH = 9;
@@ -166,6 +180,7 @@ export function enterScout(): boolean {
 export function exitScout() {
   if (!scout.on) return;
   scout.on = false;
+  scout.fire = [];
   scoutBusy.on = false;
   scout.keys = { u: false, d: false, l: false, r: false };
   scout.joy = { x: 0, y: 0 };
@@ -209,6 +224,23 @@ export function updateScout(rawDt: number) {
   // stay above the ground as it rises
   scout.gy = heightAt(scout.x, scout.z, params);
   scout.y += (scout.gy + ALT - scout.y) * (1 - Math.exp(-dt * 3));
+
+  reveal(scout.x, scout.z, 34);
+  // bases that still stand shoot at the drone when it comes within their range
+  scout.fire = [];
+  for (const b of BASES) {
+    if (cooldownLeft(b.id) > 0) continue;
+    if (Math.hypot(b.x - scout.x, b.z - scout.z) < FLAK_R) {
+      scout.fire.push(b.id);
+      scout.hp -= FLAK_DPS * b.power * dt;
+    }
+  }
+  if (scout.hp <= 0) {
+    scout.hp = 0;
+    scout.lostAt = Date.now();
+    exitScout();
+    return;
+  }
 
   // reveal bases that the drone passes near
   for (const b of BASES) {

@@ -87,6 +87,11 @@ export const baseLive = {
   fromBar: null as null | { x: number; y: number },
   /** a skill was picked with a tap and waits for a tap on the map (shown in the UI as "in hand") */
   armedTap: false,
+  /** strategy camera: how far it is moved from the colony (world units), the zoom, and the pan keys held */
+  panX: 0,
+  panZ: 0,
+  zoom: 1,
+  panKeys: { u: false, d: false, l: false, r: false },
 };
 
 export const occupant = (placed: Record<number, Cell>, gx: number, gz: number) => {

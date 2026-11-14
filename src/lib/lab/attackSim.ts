@@ -3,6 +3,7 @@ import { CELL, PLATFORM, baseStore } from "@/lib/lab/baseStore";
 import { TYPES, gameStore } from "@/lib/lab/gameStore";
 import { centreOf, maxHp, sim } from "@/lib/lab/waveSim";
 import { WEAPONS, current, dmgMul, gapMul, levelOf, type WeaponId } from "@/lib/lab/weapons";
+import { reveal } from "@/lib/lab/explore";
 import { flightLive } from "@/lib/store/flightStore";
 import { heightAt, paramsFor } from "@/components/universe/surface/terrain";
 import { DESTINATIONS } from "@/lib/universe/destinations";
@@ -60,6 +61,9 @@ export const atk = {
   /** camera height / distance behind / look-at height, eased (the scouting drone uses a higher view) */
   camH: 9,
   camD: 11.5,
+  /** camera orbit around the character (radians); turn = -1/0/1 from Q/E */
+  yaw: 0,
+  turn: 0,
   lookY: 1.1,
   hp: 100,
   max: 100,
@@ -122,6 +126,8 @@ export function enterAttack(at?: { x: number; z: number }) {
   atk.camD = 11.5;
   atk.lookY = 1.1;
   atk.face = Math.PI;
+  atk.yaw = 0;
+  atk.turn = 0;
   atk.hp = atk.max;
   atk.kills = 0;
   atk.bullets = [];
@@ -200,10 +206,19 @@ export function updateAttack(rawDt: number) {
     ix /= len;
     iz /= len;
   }
+  atk.yaw += atk.turn * 1.9 * dt;
+  // movement is relative to the camera: screen-up is where the camera looks
+  const sy = Math.sin(atk.yaw);
+  const cy = Math.cos(atk.yaw);
+  const wx = ix * cy + iz * sy;
+  const wz = -ix * sy + iz * cy;
+  ix = wx;
+  iz = wz;
   atk.moving = len > 0.12;
   if (atk.moving) {
     atk.x += ix * SPEED * dt;
     atk.z += iz * SPEED * dt;
+    reveal(atk.x, atk.z, 30);
   }
 
   // stay inside the map and out of the buildings

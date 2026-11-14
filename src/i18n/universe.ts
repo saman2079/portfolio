@@ -58,7 +58,8 @@ export interface UniverseText {
       max: string;
       wave: string;
       callWave: string;
-      scout: { enter: string; exit: string; keys: string; touch: string; battery: string; found: string; discovered: string; names: string[]; bases: string; power: string; attack: string; cooldown: string; wave: string };
+      scout: { enter: string; exit: string; keys: string; touch: string; battery: string; hull: string; lost: string; found: string; discovered: string; names: string[]; bases: string; power: string; attack: string; cooldown: string; wave: string };
+      recenter: string;
       armory: { title: string; buy: string; upgrade: string; equip: string; equipped: string; level: string; dmg: string; rate: string; range: string; max: string; names: Record<"rifle" | "machinegun" | "shotgun" | "sniper" | "rpg" | "minigun", string>; info: Record<"rifle" | "machinegun" | "shotgun" | "sniper" | "rpg" | "minigun", string> };
       attack: { enter: string; exit: string; go: string; keys: string; touch: string; kills: string; hp: string; wave: string; left: string; win: string; fail: string };
       repelled: string;
@@ -106,7 +107,7 @@ export const universeText: Record<Locale, UniverseText> = {
       start: "ساخت پایگاه",
       exit: "خروج",
       reset: "بازنشانی",
-      hint: "روی یک مهارت بزن و بعد روی زمین بزن تا ساخته شود (یا بکش و رها کن). دوباره بکش تا جابه‌جا شود؛ برگرداندنش روی نوار، حذفش می‌کند.",
+      hint: "برای دیدن نقشه زمین را بکش (یا WASD و چرخ ماوس). روی یک مهارت بزن و بعد روی زمین بزن تا ساخته شود (یا بکش و رها کن). دوباره بکش تا جابه‌جا شود؛ برگرداندنش روی نوار، حذفش می‌کند.",
       power: "قدرت پایگاه",
       online: "فعال",
       level: "سطح",
@@ -135,6 +136,8 @@ export const universeText: Record<Locale, UniverseText> = {
           keys: "حرکت: WASD یا کلیدهای جهت · خروج: Esc",
           touch: "با جوی‌استیک پهپاد را حرکت بده",
           battery: "باتری",
+          hull: "بدنه",
+          lost: "پهپاد سرنگون شد",
           found: "پایگاه دشمن",
           discovered: "پایگاه دشمن پیدا شد: {name}",
           names: ["پست سرخ", "اردوگاه یخی", "دژ غارتگران"],
@@ -144,6 +147,7 @@ export const universeText: Record<Locale, UniverseText> = {
           cooldown: "بازسازی {m} دقیقه",
           wave: "موج در جریان است",
         },
+        recenter: "مرکز کلونی",
         armory: {
           title: "اسلحه‌خانه",
           buy: "خرید",
@@ -169,8 +173,8 @@ export const universeText: Record<Locale, UniverseText> = {
           enter: "حالت حمله",
           exit: "بازگشت",
           go: "نقطه‌ی حمله",
-          keys: "حرکت: WASD · هدف: ماوس · شلیک: کلیک یا Space · سلاح: ۱ تا ۶",
-          touch: "چپ: حرکت · راست: شلیک (هدف‌گیری خودکار)",
+          keys: "حرکت: WASD · هدف: ماوس · شلیک: کلیک یا Space · سلاح: ۱ تا ۶ · چرخش دوربین: Q/E یا کلیک راست و کشیدن",
+          touch: "چپ: حرکت · راست: شلیک (هدف‌گیری خودکار) · کشیدن روی صفحه: چرخش دوربین",
           kills: "کشتار",
           hp: "سلامت",
           wave: "موج",
@@ -240,7 +244,7 @@ export const universeText: Record<Locale, UniverseText> = {
       start: "Build the base",
       exit: "Exit",
       reset: "Reset",
-      hint: "Tap a skill, then tap the ground to build it (or drag and drop). Drag again to move one; drop it back on the bar to remove it.",
+      hint: "Drag the ground (or WASD and the wheel) to look around the map. Tap a skill, then tap the ground to build it (or drag and drop). Drag again to move one; drop it back on the bar to remove it.",
       power: "Base power",
       online: "Online",
       level: "Level",
@@ -269,6 +273,8 @@ export const universeText: Record<Locale, UniverseText> = {
           keys: "Move: WASD or arrows · Exit: Esc",
           touch: "Fly the drone with the joystick",
           battery: "Battery",
+          hull: "Hull",
+          lost: "Drone shot down",
           found: "Enemy bases",
           discovered: "Enemy base found: {name}",
           names: ["Red Outpost", "Frost Camp", "Raider Fort"],
@@ -278,6 +284,7 @@ export const universeText: Record<Locale, UniverseText> = {
           cooldown: "rebuilding {m} min",
           wave: "A wave is attacking",
         },
+        recenter: "Recenter",
         armory: {
           title: "Armoury",
           buy: "Buy",
@@ -303,8 +310,8 @@ export const universeText: Record<Locale, UniverseText> = {
           enter: "Attack mode",
           exit: "Back",
           go: "Go to attack",
-          keys: "Move: WASD · Aim: mouse · Fire: click or Space · Weapon: 1-6",
-          touch: "Left: move · Right: fire (auto-aim)",
+          keys: "Move: WASD · Aim: mouse · Fire: click or Space · Weapon: 1-6 · Turn camera: Q/E or right-drag",
+          touch: "Left: move · Right: fire (auto-aim) · Drag the screen: turn camera",
           kills: "Kills",
           hp: "Health",
           wave: "Wave",

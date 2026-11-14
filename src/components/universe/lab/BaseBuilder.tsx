@@ -186,6 +186,20 @@ export function BaseBuilder() {
     []
   );
 
+  // strategy camera: arrow/WASD panning, kept inside the map
+  useFrame((_, dt) => {
+    if (!baseStore.get().mode || atk.on || scout.on) return;
+    const k = baseLive.panKeys;
+    const sp = 26 * baseLive.zoom * Math.min(dt, 0.05);
+    baseLive.panX += ((k.r ? 1 : 0) - (k.l ? 1 : 0)) * sp;
+    baseLive.panZ += ((k.d ? 1 : 0) - (k.u ? 1 : 0)) * sp;
+    const d = Math.hypot(baseLive.panX, baseLive.panZ);
+    if (d > 170) {
+      baseLive.panX *= 170 / d;
+      baseLive.panZ *= 170 / d;
+    }
+  });
+
   // which grid cell is under the pointer (every frame while the builder is open)
   useFrame((state) => {
     const g = root.current;

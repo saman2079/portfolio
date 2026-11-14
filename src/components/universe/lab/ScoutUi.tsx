@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
-import { BASES, DURATION, exitScout, scout, useScoutFound, useScoutLast } from "@/lib/lab/scoutSim";
+import { BASES, DRONE_HP, DURATION, exitScout, scout, useScoutFound, useScoutLast } from "@/lib/lab/scoutSim";
 import { baseLive } from "@/lib/lab/baseStore";
 
 export interface ScoutText {
@@ -10,6 +10,7 @@ export interface ScoutText {
   keys: string;
   touch: string;
   battery: string;
+  hull: string;
   found: string;
   /** "{name}" is replaced by the base's name */
   discovered: string;
@@ -119,6 +120,12 @@ export function ScoutUi({ t }: { t: ScoutText }) {
             <p className="text-[10px] text-cyan-200">{t.battery}</p>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
               <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+          <div className="min-w-20">
+            <p className="text-[10px] text-red-200">{t.hull}</p>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-gradient-to-r from-red-400 to-orange-300" style={{ width: `${Math.max(0, (scout.hp / DRONE_HP) * 100)}%` }} />
             </div>
           </div>
           <div dir="ltr" className="font-mono text-red-300">

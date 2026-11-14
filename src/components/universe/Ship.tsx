@@ -9,7 +9,7 @@ import { DESTINATIONS } from "@/lib/universe/destinations";
 import { SEGMENTS, flightLive, flightStore, type LandState } from "@/lib/store/flightStore";
 import type { DestinationId } from "@/lib/universe/destinations";
 import { EYE } from "./surface/terrain";
-import { baseStore } from "@/lib/lab/baseStore";
+import { baseLive, baseStore } from "@/lib/lab/baseStore";
 import { atk } from "@/lib/lab/attackSim";
 import { buildFlightPath } from "./flightPath";
 import { SpeedStreaks } from "./SpeedStreaks";
@@ -124,6 +124,8 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
       m: new Matrix4(),
       eye: new Vector3(),
       buildEye: new Vector3(),
+      buildLook: new Vector3(),
+      pan: { x: 0, z: 0, zoom: 1 },
       qBuild: new Quaternion(),
       attackEye: new Vector3(),
       attackLook: new Vector3(),
@@ -342,8 +344,14 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
       const bv = MathUtils.smootherstep(live.buildView, 0, 1);
       if (bv > 0) {
         const k = state.size.width / state.size.height < 0.8 ? 1.55 : 1;
-        work.buildEye.set(GRID_CENTER.x, GRID_CENTER.y + 23.5 * k, GRID_CENTER.z + 21 * k);
-        work.m.lookAt(work.buildEye, GRID_CENTER, UP);
+        // the strategy camera can be moved over the map (smoothed) and zoomed
+        const sm = 1 - Math.exp(-dt * 9);
+        work.pan.x += (baseLive.panX - work.pan.x) * sm;
+        work.pan.z += (baseLive.panZ - work.pan.z) * sm;
+        work.pan.zoom += (baseLive.zoom - work.pan.zoom) * sm;
+        work.buildLook.set(GRID_CENTER.x + work.pan.x, GRID_CENTER.y, GRID_CENTER.z + work.pan.z);
+        work.buildEye.set(work.buildLook.x, GRID_CENTER.y + 23.5 * k * work.pan.zoom, work.buildLook.z + 21 * k * work.pan.zoom);
+        work.m.lookAt(work.buildEye, work.buildLook, UP);
         work.qBuild.setFromRotationMatrix(work.m);
         h.position.lerp(work.buildEye, bv);
         h.quaternion.slerp(work.qBuild, bv);
@@ -354,8 +362,11 @@ export function Ship({ quality, children }: { quality: "high" | "low"; children?
       const av = MathUtils.smootherstep(live.attackView, 0, 1);
       if (av > 0) {
         const k = state.size.width / state.size.height < 0.8 ? 1.3 : 1;
-        work.attackLook.set(atk.camX, GRID_CENTER.y + atk.lookY, atk.camZ - 1.5);
-        work.attackEye.set(atk.camX, GRID_CENTER.y + atk.camH * k, atk.camZ + atk.camD * k);
+        // the camera orbits the character: yaw 0 = behind it looking toward -z
+        const sy = Math.sin(atk.yaw);
+        const cy = Math.cos(atk.yaw);
+        work.attackLook.set(atk.camX - sy * 1.5, GRID_CENTER.y + atk.lookY, atk.camZ - cy * 1.5);
+        work.attackEye.set(atk.camX + sy * atk.camD * k, GRID_CENTER.y + atk.camH * k, atk.camZ + cy * atk.camD * k);
         work.m.lookAt(work.attackEye, work.attackLook, UP);
         work.qAttack.setFromRotationMatrix(work.m);
         h.position.lerp(work.attackEye, av);
