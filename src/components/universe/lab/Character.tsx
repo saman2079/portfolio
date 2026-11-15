@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
-import { Color, Matrix4, Plane, Ray, Vector3, type BufferGeometry, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { Color, Matrix4, Plane, Ray, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type Material, type Mesh, type MeshBasicMaterial } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { baseLive, baseStore } from "@/lib/lab/baseStore";
 import { MAX_BLASTS, MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
@@ -14,9 +14,16 @@ import { WEAPONS } from "@/lib/lab/weapons";
  * visor and a rifle. Bullets come from a fixed pool; the aim reticle follows the mouse.
  * Swap the model later: it only needs the group that Character.tsx moves and turns.
  */
-/** the hero model: a decimated, vertex-coloured armoured soldier (about 1 unit tall, feet at y = 0) */
+/** the hero model: full-detail armoured soldier with its original texture and rifle (0.39 units tall, feet at y = 0, faces +z; the rifle is its own mesh, muzzle toward +z) */
 const HERO_URL = "/models/hero.glb";
-const HERO_SCALE = 2.7;
+const HERO_SCALE = 6.6;
+/** where the rifle sits relative to the model, in model units (right hand, in front of the hip) */
+const HERO_GUN: [number, number, number] = [-0.1, 0.15, 0.14];
+interface Hero {
+  body: BufferGeometry;
+  gun: BufferGeometry | null;
+  mat: Material;
+}
 /** turn the model if it faces the wrong way (radians around y) */
 const HERO_YAW = 0;
 const GLOW = new Color(0.3, 2.2, 3.2);
@@ -38,19 +45,23 @@ export function CharacterLayer() {
   const fill = useRef<Group>(null);
   const fallback = useRef<Group>(null);
   const heroRef = useRef<Group>(null);
-  const [hero, setHero] = useState<BufferGeometry | null>(null);
+  const [hero, setHero] = useState<Hero | null>(null);
   useEffect(() => {
     let dead = false;
     // loaded outside Suspense on purpose: if it fails the placeholder soldier simply stays
     new GLTFLoader().load(
       HERO_URL,
       (gltf) => {
-        let geo: BufferGeometry | null = null;
+        const found: Record<string, Mesh> = {};
         gltf.scene.traverse((o) => {
           const m = o as Mesh;
-          if (!geo && m.isMesh) geo = m.geometry;
+          if (m.isMesh) found[o.name || m.geometry.type] = m;
         });
-        if (!dead && geo) setHero(geo);
+        const b = found.hero;
+        if (dead || !b) return;
+        const mat = b.material as Material & { map?: { colorSpace: string } | null };
+        if (mat.map) mat.map.colorSpace = SRGBColorSpace;
+        setHero({ body: b.geometry, gun: found.gun?.geometry ?? null, mat });
       },
       undefined,
       () => {}
@@ -126,7 +137,7 @@ export function CharacterLayer() {
         continue;
       }
       m.visible = true;
-      m.position.set(b.x, 1.3 + gy, b.z);
+      m.position.set(b.x, 1.1 + gy, b.z);
       m.rotation.y = Math.atan2(b.vx, b.vz);
       const w = WEAPONS[b.w];
       m.scale.set(w.size[0], w.size[0], w.size[1]);
@@ -160,9 +171,7 @@ export function CharacterLayer() {
       <group ref={root} visible={false}>
         {hero && (
           <group ref={heroRef} rotation={[0, HERO_YAW, 0]}>
-            <mesh geometry={hero} scale={HERO_SCALE}>
-              <meshStandardMaterial vertexColors metalness={0.35} roughness={0.6} />
-            </mesh>
+            <mesh geometry={hero.body} material={hero.mat} scale={HERO_SCALE} />
           </group>
         )}
         <group ref={fallback} visible={!hero}>
@@ -204,7 +213,11 @@ export function CharacterLayer() {
           </mesh>
         </group>
         </group>
-        <group ref={gun} position={hero ? [1.0, 1.9, 0.5] : [0.5, 1.3, 0.3]}>
+        <group ref={gun} position={hero ? [HERO_GUN[0] * HERO_SCALE, HERO_GUN[1] * HERO_SCALE, HERO_GUN[2] * HERO_SCALE] : [0.5, 1.3, 0.3]}>
+          {hero?.gun ? (
+            <mesh geometry={hero.gun} material={hero.mat} scale={HERO_SCALE} />
+          ) : (
+            <>
           <mesh position={[0, 0, 0.1]}>
             <boxGeometry args={[0.2, 0.22, 0.9]} />
             <meshStandardMaterial {...plate} />
@@ -213,7 +226,9 @@ export function CharacterLayer() {
             <cylinderGeometry args={[0.05, 0.06, 0.8, 8]} />
             <meshStandardMaterial color="#222b3b" metalness={0.9} roughness={0.3} />
           </mesh>
-          <mesh ref={flash} position={[0, 0.02, 1.3]} visible={false}>
+            </>
+          )}
+          <mesh ref={flash} position={[0, 0.02, hero?.gun ? 0.75 : 1.3]} visible={false}>
             <sphereGeometry args={[0.2, 8, 6]} />
             <meshBasicMaterial color={BULLET} toneMapped={false} />
           </mesh>
