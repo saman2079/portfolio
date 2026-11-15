@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
-import { Color, Matrix4, Plane, Ray, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { Color, Matrix4, Plane, Ray, Vector3, type BufferGeometry, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { baseLive, baseStore } from "@/lib/lab/baseStore";
 import { MAX_BLASTS, MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
 import { WEAPONS } from "@/lib/lab/weapons";
@@ -13,6 +14,11 @@ import { WEAPONS } from "@/lib/lab/weapons";
  * visor and a rifle. Bullets come from a fixed pool; the aim reticle follows the mouse.
  * Swap the model later: it only needs the group that Character.tsx moves and turns.
  */
+/** the hero model: a decimated, vertex-coloured armoured soldier (about 1 unit tall, feet at y = 0) */
+const HERO_URL = "/models/hero.glb";
+const HERO_SCALE = 2.7;
+/** turn the model if it faces the wrong way (radians around y) */
+const HERO_YAW = 0;
 const GLOW = new Color(0.3, 2.2, 3.2);
 const BULLET = new Color(3.2, 2.6, 0.7);
 const armour = { color: "#1a2230", metalness: 0.8, roughness: 0.4 } as const;
@@ -30,6 +36,29 @@ export function CharacterLayer() {
   const blasts = useRef<(Mesh | null)[]>([]);
   const bar = useRef<Group>(null);
   const fill = useRef<Group>(null);
+  const fallback = useRef<Group>(null);
+  const heroRef = useRef<Group>(null);
+  const [hero, setHero] = useState<BufferGeometry | null>(null);
+  useEffect(() => {
+    let dead = false;
+    // loaded outside Suspense on purpose: if it fails the placeholder soldier simply stays
+    new GLTFLoader().load(
+      HERO_URL,
+      (gltf) => {
+        let geo: BufferGeometry | null = null;
+        gltf.scene.traverse((o) => {
+          const m = o as Mesh;
+          if (!geo && m.isMesh) geo = m.geometry;
+        });
+        if (!dead && geo) setHero(geo);
+      },
+      undefined,
+      () => {}
+    );
+    return () => {
+      dead = true;
+    };
+  }, []);
   const work = useMemo(() => ({ ray: new Ray(), inv: new Matrix4(), plane: new Plane(new Vector3(0, 1, 0), 0), hit: new Vector3() }), []);
 
   useFrame((state, dt) => {
@@ -74,6 +103,13 @@ export function CharacterLayer() {
     g.rotation.y += d * (1 - Math.exp(-dt * 16));
     const t = state.clock.elapsedTime;
     const walk = atk.moving ? Math.sin(t * 13) : 0;
+    if (heroRef.current) {
+      // the model is a static mesh: bob and lean into the run instead of swinging legs
+      const hr = heroRef.current;
+      hr.position.y = atk.moving ? Math.abs(walk) * 0.09 : Math.sin(t * 2) * 0.02;
+      hr.rotation.x = atk.moving ? 0.09 : 0;
+      hr.rotation.z = atk.moving ? walk * 0.05 : 0;
+    }
     if (body.current) body.current.position.y = 0.95 + (atk.moving ? Math.abs(walk) * 0.07 : Math.sin(t * 2) * 0.015);
     if (legL.current) legL.current.rotation.x = walk * 0.7;
     if (legR.current) legR.current.rotation.x = -walk * 0.7;
@@ -122,6 +158,14 @@ export function CharacterLayer() {
   return (
     <group>
       <group ref={root} visible={false}>
+        {hero && (
+          <group ref={heroRef} rotation={[0, HERO_YAW, 0]}>
+            <mesh geometry={hero} scale={HERO_SCALE}>
+              <meshStandardMaterial vertexColors metalness={0.35} roughness={0.6} />
+            </mesh>
+          </group>
+        )}
+        <group ref={fallback} visible={!hero}>
         <group ref={body} position={[0, 0.95, 0]}>
           {/* torso, head, visor */}
           <mesh position={[0, 0.35, 0]}>
@@ -145,20 +189,6 @@ export function CharacterLayer() {
             <boxGeometry args={[0.2, 0.7, 0.25]} />
             <meshStandardMaterial {...armour} />
           </mesh>
-          <group ref={gun} position={[0.5, 0.35, 0.3]}>
-            <mesh position={[0, 0, 0.1]}>
-              <boxGeometry args={[0.2, 0.22, 0.9]} />
-              <meshStandardMaterial {...plate} />
-            </mesh>
-            <mesh position={[0, 0.02, 0.8]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.05, 0.06, 0.8, 8]} />
-              <meshStandardMaterial color="#222b3b" metalness={0.9} roughness={0.3} />
-            </mesh>
-            <mesh ref={flash} position={[0, 0.02, 1.3]} visible={false}>
-              <sphereGeometry args={[0.2, 8, 6]} />
-              <meshBasicMaterial color={BULLET} toneMapped={false} />
-            </mesh>
-          </group>
         </group>
         {/* legs swing around the hips */}
         <group ref={legL} position={[-0.2, 0.95, 0]}>
@@ -173,7 +203,22 @@ export function CharacterLayer() {
             <meshStandardMaterial {...armour} />
           </mesh>
         </group>
-        <Billboard position={[0, 3.0, 0]}>
+        </group>
+        <group ref={gun} position={hero ? [1.0, 1.9, 0.5] : [0.5, 1.3, 0.3]}>
+          <mesh position={[0, 0, 0.1]}>
+            <boxGeometry args={[0.2, 0.22, 0.9]} />
+            <meshStandardMaterial {...plate} />
+          </mesh>
+          <mesh position={[0, 0.02, 0.8]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.05, 0.06, 0.8, 8]} />
+            <meshStandardMaterial color="#222b3b" metalness={0.9} roughness={0.3} />
+          </mesh>
+          <mesh ref={flash} position={[0, 0.02, 1.3]} visible={false}>
+            <sphereGeometry args={[0.2, 8, 6]} />
+            <meshBasicMaterial color={BULLET} toneMapped={false} />
+          </mesh>
+        </group>
+        <Billboard position={[0, 3.3, 0]}>
           <group ref={bar} visible={false}>
             <mesh>
               <planeGeometry args={[1.7, 0.2]} />
