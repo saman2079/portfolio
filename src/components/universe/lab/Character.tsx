@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
-import { AnimationMixer, Color, LoopRepeat, Matrix4, Plane, Ray, Vector3, type AnimationAction, type AnimationClip, type Bone, type BufferGeometry, type Group, type Material, type Mesh, type MeshBasicMaterial, type Object3D, type SkinnedMesh } from "three";
+import { AnimationMixer, Color, LoopRepeat, MeshStandardMaterial, Matrix4, PMREMGenerator, Plane, Ray, Vector3, type AnimationAction, type AnimationClip, type Bone, type BufferGeometry, type Group, type Material, type Mesh, type MeshBasicMaterial, type Object3D, type SkinnedMesh } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { baseLive, baseStore } from "@/lib/lab/baseStore";
 import { MAX_BLASTS, MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
 import { WEAPONS } from "@/lib/lab/weapons";
@@ -19,8 +20,8 @@ const HERO_URL = "/models/hero.glb";
 const GUN_URL = "/models/gun.glb";
 /** height of the character in the game, in world units */
 const HERO_SCALE = 2.6;
-/** the model faces -z, the game's forward is +z */
-const HERO_YAW = Math.PI;
+/** turn the model if it runs backwards (radians around y) */
+const HERO_YAW = 0;
 /** scale of the rifle mesh (0.19 long in the file) */
 const GUN_SCALE = 6.6;
 interface Hero {
@@ -50,6 +51,7 @@ export function CharacterLayer() {
   const fallback = useRef<Group>(null);
   const heroRef = useRef<Group>(null);
   const [hero, setHero] = useState<Hero | null>(null);
+  const gl = useThree((st) => st.gl);
   const [want, setWant] = useState(false);
   const wantRef = useRef(false);
   const rig = useRef<{ mixer: AnimationMixer; idle: AnimationAction | null; run: AnimationAction | null; cur: AnimationAction | null; v: Vector3 } | null>(null);
@@ -90,7 +92,29 @@ export function CharacterLayer() {
       dead = true;
     };
   }, [want]);
-  const work = useMemo(() => ({ ray: new Ray(), inv: new Matrix4(), plane: new Plane(new Vector3(0, 1, 0), 0), hit: new Vector3() }), []);
+  // the scene is dark, so the armour gets its own soft environment light and sharp textures
+  useEffect(() => {
+    if (!hero) return;
+    const pm = new PMREMGenerator(gl);
+    const env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+    const aniso = gl.capabilities.getMaxAnisotropy();
+    const mats = new Set<MeshStandardMaterial>();
+    hero.scene.traverse((o) => {
+      const m = (o as Mesh).material as MeshStandardMaterial | undefined;
+      if (m && (m as MeshStandardMaterial).isMeshStandardMaterial) mats.add(m);
+    });
+    if (hero.gunMat) mats.add(hero.gunMat as MeshStandardMaterial);
+    for (const m of mats) {
+      m.envMap = env;
+      m.envMapIntensity = 1.5;
+      m.metalness = 0.7;
+      m.roughness = 0.85;
+      for (const t of [m.map, m.metalnessMap, m.roughnessMap]) if (t) t.anisotropy = aniso;
+      m.needsUpdate = true;
+    }
+    pm.dispose();
+  }, [hero, gl]);
+  const work = useMemo(() => ({ ray: new Ray(), inv: new Matrix4(), plane: new Plane(new Vector3(0, 1, 0), 0), hit: new Vector3(), muz: new Vector3() }), []);
 
   useFrame((state, dt) => {
     const g = root.current;
@@ -156,6 +180,16 @@ export function CharacterLayer() {
         gun.current.position.copy(r.v);
       }
     }
+    // the muzzle: bullets leave from the tip of the gun, wherever the hand has put it
+    if (flash.current && g.parent) {
+      g.updateMatrixWorld(true);
+      flash.current.getWorldPosition(work.muz);
+      g.parent.worldToLocal(work.muz);
+      atk.muzX = work.muz.x;
+      atk.muzZ = work.muz.z;
+      atk.muzY = Math.max(0.3, work.muz.y - gy);
+      atk.muzOk = true;
+    }
     if (body.current) body.current.position.y = 0.95 + (atk.moving ? Math.abs(walk) * 0.07 : Math.sin(t * 2) * 0.015);
     if (legL.current) legL.current.rotation.x = walk * 0.7;
     if (legR.current) legR.current.rotation.x = -walk * 0.7;
@@ -172,7 +206,7 @@ export function CharacterLayer() {
         continue;
       }
       m.visible = true;
-      m.position.set(b.x, 1.1 + gy, b.z);
+      m.position.set(b.x, gy + b.y, b.z);
       m.rotation.y = Math.atan2(b.vx, b.vz);
       const w = WEAPONS[b.w];
       m.scale.set(w.size[0], w.size[0], w.size[1]);
@@ -263,7 +297,7 @@ export function CharacterLayer() {
           </mesh>
             </>
           )}
-          <mesh ref={flash} position={[0, 0.02, hero?.gun ? 0.75 : 1.3]} visible={false}>
+          <mesh ref={flash} position={[0, 0.02, hero?.gun ? 0.65 : 1.3]} visible={false}>
             <sphereGeometry args={[0.2, 8, 6]} />
             <meshBasicMaterial color={BULLET} toneMapped={false} />
           </mesh>

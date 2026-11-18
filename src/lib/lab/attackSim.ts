@@ -23,6 +23,8 @@ export interface Bullet {
   z: number;
   vx: number;
   vz: number;
+  /** height above the ground it was fired from (the gun muzzle) */
+  y: number;
   life: number;
   dmg: number;
   /** enemies it can still pass through */
@@ -32,6 +34,10 @@ export interface Bullet {
   /** ids already hit (a piercing bullet hits each enemy once) */
   hit: number[];
 }
+/** attack camera: close behind the character */
+const CAM_H = 4.6;
+const CAM_D = 6.6;
+const CAM_LOOK = 1.6;
 export const MAX_BULLETS = 64;
 export const MAX_BLASTS = 6;
 
@@ -70,6 +76,11 @@ export const atk = {
   fireCd: 0,
   invuln: 0,
   flash: 0,
+  /** where the gun muzzle is right now (surface-local x/z, height above ground); Character.tsx keeps it up to date */
+  muzOk: false,
+  muzX: 0,
+  muzZ: 0,
+  muzY: 1.4,
   moving: false,
   keys: { u: false, d: false, l: false, r: false },
   joy: { x: 0, y: 0 },
@@ -122,9 +133,9 @@ export function enterAttack(at?: { x: number; z: number }) {
   const [x, z] = at ? [at.x, at.z] : home();
   atk.x = atk.camX = x;
   atk.z = atk.camZ = z;
-  atk.camH = 9;
-  atk.camD = 11.5;
-  atk.lookY = 1.1;
+  atk.camH = CAM_H;
+  atk.camD = CAM_D;
+  atk.lookY = CAM_LOOK;
   atk.face = Math.PI;
   atk.yaw = 0;
   atk.turn = 0;
@@ -271,8 +282,9 @@ export function updateAttack(rawDt: number) {
     for (let p = 0; p < w.pellets && atk.bullets.length < MAX_BULLETS; p++) {
       const a = base + (Math.random() - 0.5) * 2 * w.spread;
       atk.bullets.push({
-        x: atk.x + (dx / d) * 1.0,
-        z: atk.z + (dz / d) * 1.0,
+        x: atk.muzOk ? atk.muzX : atk.x + (dx / d) * 1.0,
+        z: atk.muzOk ? atk.muzZ : atk.z + (dz / d) * 1.0,
+        y: atk.muzOk ? atk.muzY : 1.1,
         vx: Math.sin(a) * w.speed,
         vz: Math.cos(a) * w.speed,
         life: w.life,
@@ -351,5 +363,5 @@ export function updateAttack(rawDt: number) {
   atk.camX += (atk.x - atk.camX) * f;
   atk.camZ += (atk.z - atk.camZ) * f;
   const gy = groundAt(atk.camX, atk.camZ);
-  easeCam(dt, 9 + gy, 11.5, 1.1 + gy);
+  easeCam(dt, CAM_H + gy, CAM_D, CAM_LOOK + gy);
 }
