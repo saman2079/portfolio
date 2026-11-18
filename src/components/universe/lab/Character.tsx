@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
-import { Color, Matrix4, Plane, Ray, SRGBColorSpace, Vector3, type BufferGeometry, type Group, type Material, type Mesh, type MeshBasicMaterial } from "three";
+import { AnimationMixer, Color, LoopRepeat, Matrix4, Plane, Ray, Vector3, type AnimationAction, type AnimationClip, type Bone, type BufferGeometry, type Group, type Material, type Mesh, type MeshBasicMaterial, type Object3D, type SkinnedMesh } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { baseLive, baseStore } from "@/lib/lab/baseStore";
 import { MAX_BLASTS, MAX_BULLETS, atk, exitAttack, groundAt, updateAttack } from "@/lib/lab/attackSim";
@@ -14,18 +14,22 @@ import { WEAPONS } from "@/lib/lab/weapons";
  * visor and a rifle. Bullets come from a fixed pool; the aim reticle follows the mouse.
  * Swap the model later: it only needs the group that Character.tsx moves and turns.
  */
-/** the hero model: full-detail armoured soldier with its original texture and rifle (0.39 units tall, feet at y = 0, faces +z; the rifle is its own mesh, muzzle toward +z) */
+/** the hero: a rigged armoured soldier (252k verts, Idle/Walk/Run/Wave clips). It is 1 unit tall and faces -z; the rifle is a separate mesh that follows the right hand. */
 const HERO_URL = "/models/hero.glb";
-const HERO_SCALE = 6.6;
-/** where the rifle sits relative to the model, in model units (right hand, in front of the hip) */
-const HERO_GUN: [number, number, number] = [-0.1, 0.15, 0.14];
+const GUN_URL = "/models/gun.glb";
+/** height of the character in the game, in world units */
+const HERO_SCALE = 2.6;
+/** the model faces -z, the game's forward is +z */
+const HERO_YAW = Math.PI;
+/** scale of the rifle mesh (0.19 long in the file) */
+const GUN_SCALE = 6.6;
 interface Hero {
-  body: BufferGeometry;
+  scene: Object3D;
+  clips: Record<string, AnimationClip>;
+  hand: Bone | null;
   gun: BufferGeometry | null;
-  mat: Material;
+  gunMat: Material | null;
 }
-/** turn the model if it faces the wrong way (radians around y) */
-const HERO_YAW = 0;
 const GLOW = new Color(0.3, 2.2, 3.2);
 const BULLET = new Color(3.2, 2.6, 0.7);
 const armour = { color: "#1a2230", metalness: 0.8, roughness: 0.4 } as const;
@@ -46,30 +50,46 @@ export function CharacterLayer() {
   const fallback = useRef<Group>(null);
   const heroRef = useRef<Group>(null);
   const [hero, setHero] = useState<Hero | null>(null);
+  const [want, setWant] = useState(false);
+  const wantRef = useRef(false);
+  const rig = useRef<{ mixer: AnimationMixer; idle: AnimationAction | null; run: AnimationAction | null; cur: AnimationAction | null; v: Vector3 } | null>(null);
+  // the model is big (14 MB), so it is only fetched the first time attack mode is used
   useEffect(() => {
+    if (!want) return;
     let dead = false;
     // loaded outside Suspense on purpose: if it fails the placeholder soldier simply stays
-    new GLTFLoader().load(
-      HERO_URL,
-      (gltf) => {
-        const found: Record<string, Mesh> = {};
-        gltf.scene.traverse((o) => {
-          const m = o as Mesh;
-          if (m.isMesh) found[o.name || m.geometry.type] = m;
-        });
-        const b = found.hero;
-        if (dead || !b) return;
-        const mat = b.material as Material & { map?: { colorSpace: string } | null };
-        if (mat.map) mat.map.colorSpace = SRGBColorSpace;
-        setHero({ body: b.geometry, gun: found.gun?.geometry ?? null, mat });
-      },
-      undefined,
-      () => {}
-    );
+    const loader = new GLTFLoader();
+    const load = (url: string) => new Promise<{ scene: Object3D; animations: AnimationClip[] } | null>((res) => loader.load(url, (g) => res(g), undefined, () => res(null)));
+    Promise.all([load(HERO_URL), load(GUN_URL)]).then(([h, g]) => {
+      if (dead || !h) return;
+      const clips: Record<string, AnimationClip> = {};
+      for (const c of h.animations) clips[c.name] = c;
+      let hand: Bone | null = null;
+      h.scene.traverse((o) => {
+        if (o.name === "RightHand") hand = o as Bone;
+        const sm = o as SkinnedMesh;
+        // the animated pose leaves the bind-pose bounds, so never cull it
+        if (sm.isSkinnedMesh) sm.frustumCulled = false;
+      });
+      let gunMesh: Mesh | null = null;
+      g?.scene.traverse((o) => {
+        if (!gunMesh && (o as Mesh).isMesh) gunMesh = o as Mesh;
+      });
+      const gm = gunMesh as Mesh | null;
+      h.scene.scale.setScalar(HERO_SCALE);
+      h.scene.position.y = 0.5008 * HERO_SCALE;
+      const mixer = new AnimationMixer(h.scene);
+      const idle = clips.Idle ? mixer.clipAction(clips.Idle) : null;
+      const run = clips.Run ? mixer.clipAction(clips.Run) : null;
+      for (const a of [idle, run]) if (a) a.setLoop(LoopRepeat, Infinity);
+      idle?.play();
+      rig.current = { mixer, idle, run, cur: idle, v: new Vector3() };
+      setHero({ scene: h.scene, clips, hand, gun: gm?.geometry ?? null, gunMat: gm?.material as Material | null });
+    });
     return () => {
       dead = true;
     };
-  }, []);
+  }, [want]);
   const work = useMemo(() => ({ ray: new Ray(), inv: new Matrix4(), plane: new Plane(new Vector3(0, 1, 0), 0), hit: new Vector3() }), []);
 
   useFrame((state, dt) => {
@@ -105,6 +125,10 @@ export function CharacterLayer() {
 
     updateAttack(dt);
 
+    if (!wantRef.current) {
+      wantRef.current = true;
+      setWant(true);
+    }
     g.visible = true;
     const gy = groundAt(atk.x, atk.z);
     g.position.set(atk.x, gy, atk.z);
@@ -114,12 +138,23 @@ export function CharacterLayer() {
     g.rotation.y += d * (1 - Math.exp(-dt * 16));
     const t = state.clock.elapsedTime;
     const walk = atk.moving ? Math.sin(t * 13) : 0;
-    if (heroRef.current) {
-      // the model is a static mesh: bob and lean into the run instead of swinging legs
-      const hr = heroRef.current;
-      hr.position.y = atk.moving ? Math.abs(walk) * 0.09 : Math.sin(t * 2) * 0.02;
-      hr.rotation.x = atk.moving ? 0.09 : 0;
-      hr.rotation.z = atk.moving ? walk * 0.05 : 0;
+    const r = rig.current;
+    if (r && hero) {
+      // blend between standing and running
+      const next = atk.moving ? r.run : r.idle;
+      if (next && next !== r.cur) {
+        next.reset().fadeIn(0.18).play();
+        r.cur?.fadeOut(0.18);
+        r.cur = next;
+      }
+      r.mixer.update(dt);
+      // the rifle follows the right hand, but keeps pointing where the character looks
+      if (hero.hand && gun.current) {
+        g.updateMatrixWorld(true);
+        hero.hand.getWorldPosition(r.v);
+        g.worldToLocal(r.v);
+        gun.current.position.copy(r.v);
+      }
     }
     if (body.current) body.current.position.y = 0.95 + (atk.moving ? Math.abs(walk) * 0.07 : Math.sin(t * 2) * 0.015);
     if (legL.current) legL.current.rotation.x = walk * 0.7;
@@ -171,7 +206,7 @@ export function CharacterLayer() {
       <group ref={root} visible={false}>
         {hero && (
           <group ref={heroRef} rotation={[0, HERO_YAW, 0]}>
-            <mesh geometry={hero.body} material={hero.mat} scale={HERO_SCALE} />
+            <primitive object={hero.scene} />
           </group>
         )}
         <group ref={fallback} visible={!hero}>
@@ -213,9 +248,9 @@ export function CharacterLayer() {
           </mesh>
         </group>
         </group>
-        <group ref={gun} position={hero ? [HERO_GUN[0] * HERO_SCALE, HERO_GUN[1] * HERO_SCALE, HERO_GUN[2] * HERO_SCALE] : [0.5, 1.3, 0.3]}>
-          {hero?.gun ? (
-            <mesh geometry={hero.gun} material={hero.mat} scale={HERO_SCALE} />
+        <group ref={gun} position={[0.5, 1.3, 0.3]}>
+          {hero?.gun && hero.gunMat ? (
+            <mesh geometry={hero.gun} material={hero.gunMat} scale={GUN_SCALE} />
           ) : (
             <>
           <mesh position={[0, 0, 0.1]}>
