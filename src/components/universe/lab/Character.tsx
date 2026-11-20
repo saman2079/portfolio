@@ -31,10 +31,61 @@ interface Hero {
   gun: BufferGeometry | null;
   gunMat: Material | null;
 }
+interface GltfData {
+  scene: Object3D;
+  animations: AnimationClip[];
+}
+interface HeroAssets {
+  h: GltfData;
+  g: GltfData | null;
+}
 const GLOW = new Color(0.3, 2.2, 3.2);
 const BULLET = new Color(3.2, 2.6, 0.7);
 const armour = { color: "#1a2230", metalness: 0.8, roughness: 0.4 } as const;
 const plate = { color: "#2f3b52", metalness: 0.75, roughness: 0.35 } as const;
+
+const wait = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
+
+function loadGltf(url: string): Promise<GltfData | null> {
+  return new Promise((res) => {
+    try {
+      new GLTFLoader().load(
+        url,
+        (g) => res(g),
+        undefined,
+        (e) => {
+          console.warn("[hero] could not load", url, e);
+          res(null);
+        }
+      );
+    } catch (e) {
+      console.warn("[hero] could not load", url, e);
+      res(null);
+    }
+  });
+}
+
+/** a file that fails (flaky network, memory) is tried again a couple of times before giving up */
+async function loadWithRetry(url: string): Promise<GltfData | null> {
+  for (let i = 0; i < 3; i++) {
+    const r = await loadGltf(url);
+    if (r) return r;
+    await wait(1500 * (i + 1));
+  }
+  return null;
+}
+
+/** one shared download: later callers reuse it; a failed one is forgotten so it can be tried again */
+let heroLoad: Promise<HeroAssets | null> | null = null;
+function loadHeroAssets(): Promise<HeroAssets | null> {
+  if (heroLoad) return heroLoad;
+  const p = Promise.all([loadWithRetry(HERO_URL), loadWithRetry(GUN_URL)]).then(([h, g]) => (h ? { h, g } : null));
+  heroLoad = p;
+  void p.then((r) => {
+    if (!r && heroLoad === p) heroLoad = null;
+  });
+  return p;
+}
 
 export function CharacterLayer() {
   const root = useRef<Group>(null);
@@ -54,44 +105,56 @@ export function CharacterLayer() {
   const gl = useThree((st) => st.gl);
   const [want, setWant] = useState(false);
   const wantRef = useRef(false);
+  /** bumped to try the download again after it failed */
+  const [attempt, setAttempt] = useState(0);
+  const failed = useRef(false);
+  const wasOn = useRef(false);
   const rig = useRef<{ mixer: AnimationMixer; idle: AnimationAction | null; run: AnimationAction | null; cur: AnimationAction | null; v: Vector3 } | null>(null);
-  // the model is big (14 MB), so it is only fetched the first time attack mode is used
+  // the model is big (14 MB): it starts downloading when the builder opens, so it is ready when attack mode starts
   useEffect(() => {
     if (!want) return;
     let dead = false;
     // loaded outside Suspense on purpose: if it fails the placeholder soldier simply stays
-    const loader = new GLTFLoader();
-    const load = (url: string) => new Promise<{ scene: Object3D; animations: AnimationClip[] } | null>((res) => loader.load(url, (g) => res(g), undefined, () => res(null)));
-    Promise.all([load(HERO_URL), load(GUN_URL)]).then(([h, g]) => {
-      if (dead || !h) return;
-      const clips: Record<string, AnimationClip> = {};
-      for (const c of h.animations) clips[c.name] = c;
-      let hand: Bone | null = null;
-      h.scene.traverse((o) => {
-        if (o.name === "RightHand") hand = o as Bone;
-        const sm = o as SkinnedMesh;
-        // the animated pose leaves the bind-pose bounds, so never cull it
-        if (sm.isSkinnedMesh) sm.frustumCulled = false;
+    loadHeroAssets()
+      .then((a) => {
+        if (dead) return;
+        if (!a) {
+          failed.current = true;
+          return;
+        }
+        const { h, g } = a;
+        const clips: Record<string, AnimationClip> = {};
+        for (const c of h.animations) clips[c.name] = c;
+        let hand: Bone | null = null;
+        h.scene.traverse((o) => {
+          if (o.name === "RightHand") hand = o as Bone;
+          const sm = o as SkinnedMesh;
+          // the animated pose leaves the bind-pose bounds, so never cull it
+          if (sm.isSkinnedMesh) sm.frustumCulled = false;
+        });
+        let gunMesh: Mesh | null = null;
+        g?.scene.traverse((o) => {
+          if (!gunMesh && (o as Mesh).isMesh) gunMesh = o as Mesh;
+        });
+        const gm = gunMesh as Mesh | null;
+        h.scene.scale.setScalar(HERO_SCALE);
+        h.scene.position.y = 0.5008 * HERO_SCALE;
+        const mixer = new AnimationMixer(h.scene);
+        const idle = clips.Idle ? mixer.clipAction(clips.Idle) : null;
+        const run = clips.Run ? mixer.clipAction(clips.Run) : null;
+        for (const act of [idle, run]) if (act) act.setLoop(LoopRepeat, Infinity);
+        idle?.play();
+        rig.current = { mixer, idle, run, cur: idle, v: new Vector3() };
+        setHero({ scene: h.scene, clips, hand, gun: gm?.geometry ?? null, gunMat: gm?.material as Material | null });
+      })
+      .catch((e) => {
+        console.warn("[hero] setup failed", e);
+        failed.current = true;
       });
-      let gunMesh: Mesh | null = null;
-      g?.scene.traverse((o) => {
-        if (!gunMesh && (o as Mesh).isMesh) gunMesh = o as Mesh;
-      });
-      const gm = gunMesh as Mesh | null;
-      h.scene.scale.setScalar(HERO_SCALE);
-      h.scene.position.y = 0.5008 * HERO_SCALE;
-      const mixer = new AnimationMixer(h.scene);
-      const idle = clips.Idle ? mixer.clipAction(clips.Idle) : null;
-      const run = clips.Run ? mixer.clipAction(clips.Run) : null;
-      for (const a of [idle, run]) if (a) a.setLoop(LoopRepeat, Infinity);
-      idle?.play();
-      rig.current = { mixer, idle, run, cur: idle, v: new Vector3() };
-      setHero({ scene: h.scene, clips, hand, gun: gm?.geometry ?? null, gunMat: gm?.material as Material | null });
-    });
     return () => {
       dead = true;
     };
-  }, [want]);
+  }, [want, attempt]);
   // the scene is dark, so the armour gets its own soft environment light and sharp textures
   useEffect(() => {
     if (!hero) return;
@@ -119,8 +182,14 @@ export function CharacterLayer() {
   useFrame((state, dt) => {
     const g = root.current;
     if (!g) return;
+    // start fetching the hero as soon as the builder is open (attack mode needs the builder)
+    if (!wantRef.current && baseStore.get().mode) {
+      wantRef.current = true;
+      setWant(true);
+    }
     if (atk.on && !baseStore.get().mode) exitAttack();
     if (!atk.on) {
+      wasOn.current = false;
       g.visible = false;
       if (reticle.current) reticle.current.visible = false;
       for (const b of bullets.current) if (b) b.visible = false;
@@ -149,6 +218,14 @@ export function CharacterLayer() {
 
     updateAttack(dt);
 
+    if (!wasOn.current) {
+      wasOn.current = true;
+      // the last download failed for good: entering attack mode again tries once more
+      if (failed.current) {
+        failed.current = false;
+        setAttempt((n) => n + 1);
+      }
+    }
     if (!wantRef.current) {
       wantRef.current = true;
       setWant(true);
